@@ -66,9 +66,10 @@ pip install -e .
 BaseAgent requires these Python packages:
 
 ```
-litellm>=1.0.0          # LLM API abstraction
-httpx>=0.24.0           # HTTP client
-pydantic>=2.0.0         # Data validation
+httpx>=0.27.0           # HTTP client for Chutes API
+pydantic>=2.0           # Data validation
+rich>=13.0              # Terminal output formatting
+typer>=0.12.0           # CLI framework
 ```
 
 These are automatically installed via pip.
@@ -77,43 +78,19 @@ These are automatically installed via pip.
 
 ## Environment Setup
 
-### 1. Choose Your LLM Provider
+### 1. Configure Chutes API
 
-BaseAgent supports multiple LLM providers. Choose one:
-
-#### Option A: Chutes AI (Recommended)
+BaseAgent uses Chutes AI as its LLM provider:
 
 ```bash
-# Set your Chutes API token
-export CHUTES_API_TOKEN="your-token-from-chutes.ai"
+# Set your Chutes API key
+export CHUTES_API_KEY="your-key-from-chutes.ai"
 
-# Configure provider
-export LLM_PROVIDER="chutes"
+# Optional: Specify a different model (default: deepseek/deepseek-chat)
 export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
 ```
 
-Get your token at [chutes.ai](https://chutes.ai)
-
-#### Option B: OpenRouter
-
-```bash
-# Set your OpenRouter API key
-export OPENROUTER_API_KEY="sk-or-v1-..."
-
-# Model is auto-configured for OpenRouter
-```
-
-Get your key at [openrouter.ai](https://openrouter.ai)
-
-#### Option C: Direct Provider APIs
-
-```bash
-# For Anthropic
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# For OpenAI
-export OPENAI_API_KEY="sk-..."
-```
+Get your API key at [chutes.ai](https://chutes.ai)
 
 ### 2. Create a Configuration File (Optional)
 
@@ -121,9 +98,8 @@ Create `.env` in the project root:
 
 ```bash
 # .env file
-CHUTES_API_TOKEN=your-token-here
-LLM_PROVIDER=chutes
-LLM_MODEL=moonshotai/Kimi-K2.5-TEE
+CHUTES_API_KEY=your-key-here
+LLM_MODEL=deepseek/deepseek-chat
 LLM_COST_LIMIT=10.0
 ```
 
@@ -141,9 +117,9 @@ python3 --version
 ### Step 2: Verify Dependencies
 
 ```bash
-python3 -c "import litellm; print('litellm:', litellm.__version__)"
 python3 -c "import httpx; print('httpx:', httpx.__version__)"
 python3 -c "import pydantic; print('pydantic:', pydantic.__version__)"
+python3 -c "import rich; print('rich:', rich.__version__)"
 ```
 
 ### Step 3: Verify BaseAgent Installation
@@ -191,14 +167,14 @@ baseagent/
 
 ## Troubleshooting
 
-### Issue: `ModuleNotFoundError: No module named 'litellm'`
+### Issue: `ModuleNotFoundError: No module named 'httpx'`
 
 **Solution**: Install dependencies
 
 ```bash
 pip install -r requirements.txt
 # or
-pip install litellm httpx pydantic
+pip install httpx pydantic rich typer
 ```
 
 ### Issue: `ImportError: cannot import name 'run_agent_loop'`
@@ -212,15 +188,14 @@ python3 agent.py --instruction "..."
 
 ### Issue: API Key Errors
 
-**Solution**: Verify your environment variables are set
+**Solution**: Verify your environment variable is set
 
 ```bash
-# Check if variables are set
-echo $CHUTES_API_TOKEN
-echo $OPENROUTER_API_KEY
+# Check if variable is set
+echo $CHUTES_API_KEY
 
 # Re-export if needed
-export CHUTES_API_TOKEN="your-token"
+export CHUTES_API_KEY="your-key"
 ```
 
 ### Issue: `rg` (ripgrep) Not Found

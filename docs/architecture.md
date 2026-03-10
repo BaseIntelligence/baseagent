@@ -18,7 +18,7 @@ graph TB
     end
     
     subgraph LLM["LLM Layer"]
-        client["client.py<br/>LiteLLM Client"]
+        client["client.py<br/>httpx Client"]
     end
     
     subgraph Config["Configuration"]
@@ -71,7 +71,7 @@ classDiagram
         +log(msg)
     }
     
-    class LiteLLMClient {
+    class LLMClient {
         +model: str
         +temperature: float
         +max_tokens: int
@@ -105,8 +105,8 @@ classDiagram
         +inject_content: Optional
     }
     
-    AgentContext --> LiteLLMClient : uses
-    LiteLLMClient --> LLMResponse : returns
+    AgentContext --> LLMClient : uses
+    LLMClient --> LLMResponse : returns
     LLMResponse --> FunctionCall : contains
     AgentContext --> ToolRegistry : uses
     ToolRegistry --> ToolResult : returns
@@ -171,13 +171,13 @@ sequenceDiagram
     participant Loop as loop.py
     participant Context as compaction.py
     participant Cache as Prompt Cache
-    participant LLM as LiteLLM Client
+    participant LLM as httpx Client
     participant Provider as API Provider
     participant Tools as Tool Registry
 
     User->>Entry: --instruction "Create hello.txt"
     Entry->>Entry: Initialize AgentContext
-    Entry->>Entry: Initialize LiteLLMClient
+    Entry->>Entry: Initialize LLMClient
     Entry->>Loop: run_agent_loop()
     
     Loop->>Loop: Build messages [system, user, state]
@@ -261,8 +261,8 @@ Intelligent context management that:
 
 ### `src/llm/client.py` - LLM Client
 
-LiteLLM-based client that:
-- Supports multiple providers (Chutes, OpenRouter, etc.)
+httpx-based client that:
+- Uses Chutes API (OpenAI-compatible)
 - Tracks token usage and costs
 - Handles tool/function calling format
 - Enforces cost limits

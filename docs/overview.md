@@ -80,8 +80,8 @@ graph TB
     end
     
     subgraph LLM["LLM Layer"]
-        Client["LiteLLM Client<br/>(src/llm/client.py)"]
-        API["Provider API<br/>(Chutes/OpenRouter)"]
+        Client["LLM Client<br/>(src/llm/client.py)"]
+        API["Chutes API"]
     end
     
     subgraph Tools["Tool System"]
@@ -152,7 +152,7 @@ sequenceDiagram
     participant User
     participant CLI as agent.py
     participant Loop as Agent Loop
-    participant LLM as LLM (Chutes/OpenRouter)
+    participant LLM as Chutes API
     participant Tools as Tool Registry
 
     User->>CLI: python agent.py --instruction "..."

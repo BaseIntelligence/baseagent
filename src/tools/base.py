@@ -79,18 +79,35 @@ class BaseTool(ABC):
         pass
 
     def resolve_path(self, path: str) -> Path:
-        """Resolve a path relative to the working directory.
+        """Resolve a path relative to the working directory with containment validation.
 
         Args:
             path: Path string (absolute or relative)
 
         Returns:
-            Resolved absolute Path
+            Resolved absolute Path contained within the working directory
+
+        Raises:
+            ValueError: If the resolved path escapes the working directory
         """
         p = Path(path)
+
+        # Resolve the path (handles .. and symlinks)
         if p.is_absolute():
-            return p
-        return (self.cwd / p).resolve()
+            resolved = p.resolve()
+        else:
+            resolved = (self.cwd / p).resolve()
+
+        # Validate path containment - resolved path must be within or equal to cwd
+        try:
+            resolved.relative_to(self.cwd.resolve())
+        except ValueError:
+            raise ValueError(
+                f"Path '{path}' resolves to '{resolved}' which is outside "
+                f"the working directory '{self.cwd}'. Path traversal is not allowed."
+            )
+
+        return resolved
 
     @classmethod
     def get_spec(cls) -> dict[str, Any]:

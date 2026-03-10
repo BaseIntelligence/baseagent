@@ -6,21 +6,18 @@
 
 Before starting, ensure you have:
 - Python 3.9+ installed
-- An LLM API key (Chutes, OpenRouter, or Anthropic)
+- A Chutes API key (get one at [chutes.ai](https://chutes.ai))
 - BaseAgent installed (see [Installation](./installation.md))
 
 ---
 
 ## Step 1: Set Up Your API Key
 
-Choose your provider and set the environment variable:
+Set the Chutes API key environment variable:
 
 ```bash
-# For Chutes AI (recommended)
-export CHUTES_API_TOKEN="your-token-from-chutes.ai"
-
-# OR for OpenRouter
-export OPENROUTER_API_KEY="sk-or-v1-..."
+# For Chutes AI
+export CHUTES_API_KEY="your-key-from-chutes.ai"
 ```
 
 ---
@@ -124,7 +121,7 @@ sequenceDiagram
 python3 agent.py --instruction "Your task description"
 
 # With environment variables inline
-CHUTES_API_TOKEN="..." python3 agent.py --instruction "..."
+CHUTES_API_KEY="..." python3 agent.py --instruction "..."
 
 # Redirect output to file
 python3 agent.py --instruction "..." > output.jsonl 2>&1

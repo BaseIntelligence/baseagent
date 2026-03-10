@@ -60,8 +60,8 @@ graph TB
     end
     
     subgraph LLM["LLM Layer"]
-        Client["LiteLLM Client"]
-        Provider["Provider (Chutes/OpenRouter)"]
+        Client["LLM Client"]
+        Provider["Chutes API"]
     end
     
     subgraph Tools["Tool System"]
@@ -91,7 +91,7 @@ graph TB
 - **Prompt Caching** - 90%+ cache hit rate for significant cost reduction
 - **Context Management** - Intelligent pruning and compaction for long tasks
 - **Self-Verification** - Automatic validation before task completion
-- **Multi-Provider** - Supports Chutes AI, OpenRouter, and litellm-compatible providers
+- **Chutes API** - Uses Chutes AI with OpenAI-compatible API format
 
 ---
 
@@ -105,7 +105,7 @@ baseagent/
 │   │   ├── loop.py          # Main agent loop
 │   │   └── compaction.py    # Context management
 │   ├── llm/
-│   │   └── client.py        # LLM client (litellm)
+│   │   └── client.py        # LLM client (httpx)
 │   ├── config/
 │   │   └── defaults.py      # Configuration
 │   ├── tools/               # Tool implementations

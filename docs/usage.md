@@ -53,14 +53,11 @@ python3 agent.py --instruction "Find the bug causing the TypeError in the test o
 Configure the agent's behavior with environment variables:
 
 ```bash
-# LLM Provider (Chutes)
-export CHUTES_API_TOKEN="your-token"
-export LLM_PROVIDER="chutes"
-export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
+# LLM Provider (Chutes API)
+export CHUTES_API_KEY="your-key"
 
-# LLM Provider (OpenRouter)
-export OPENROUTER_API_KEY="sk-or-v1-..."
-export LLM_MODEL="openrouter/anthropic/claude-sonnet-4-20250514"
+# Optional: Specify a different model (default: deepseek/deepseek-chat)
+export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
 
 # Cost management
 export LLM_COST_LIMIT="10.0"
@@ -123,9 +120,9 @@ Agent logs go to stderr:
 
 ```
 [14:30:15] [superagent] ============================================================
-[14:30:15] [superagent] SuperAgent Starting (SDK 3.0 - litellm)
+[14:30:15] [superagent] SuperAgent Starting (SDK 3.0 - httpx)
 [14:30:15] [superagent] ============================================================
-[14:30:15] [superagent] Model: openrouter/anthropic/claude-sonnet-4-20250514
+[14:30:15] [superagent] Model: deepseek/deepseek-chat
 [14:30:15] [superagent] Instruction: Create hello.txt with 'Hello World'...
 [14:30:15] [loop] Getting initial state...
 [14:30:16] [loop] Iteration 1/200

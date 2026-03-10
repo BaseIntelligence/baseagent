@@ -47,6 +47,53 @@ class ShellCommandTool(BaseTool):
             shell = os.environ.get("SHELL", "/bin/bash")
             return shell, ["-lc"]
 
+    def _build_safe_env(self) -> dict:
+        """Build a safe environment for command execution.
+
+        Returns a minimal environment that excludes sensitive variables
+        while preserving necessary ones for command execution.
+        """
+        # Allowlist of safe environment variables to pass through
+        safe_vars = {
+            # Essential system variables
+            "PATH",
+            "HOME",
+            "USER",
+            "SHELL",
+            "LANG",
+            "LC_ALL",
+            "LC_CTYPE",
+            "TERM",
+            "PWD",
+            "TMPDIR",
+            "TMP",
+            "TEMP",
+            # Development tools
+            "EDITOR",
+            "VISUAL",
+            "PAGER",
+            # Python-related
+            "PYTHONPATH",
+            "PYTHONHOME",
+            "VIRTUAL_ENV",
+            # Git-related (non-sensitive)
+            "GIT_AUTHOR_NAME",
+            "GIT_AUTHOR_EMAIL",
+            "GIT_COMMITTER_NAME",
+            "GIT_COMMITTER_EMAIL",
+        }
+
+        # Build environment with only safe variables
+        safe_env = {}
+        for var in safe_vars:
+            if var in os.environ:
+                safe_env[var] = os.environ[var]
+
+        # Override TERM to disable color codes
+        safe_env["TERM"] = "dumb"
+
+        return safe_env
+
     def execute(
         self,
         command: str,
@@ -79,14 +126,14 @@ class ShellCommandTool(BaseTool):
         shell, shell_args = self._get_shell()
 
         try:
-            # Run the command
+            # Run the command with a safe environment (no sensitive variables)
             result = subprocess.run(
                 [shell, *shell_args, command],
                 cwd=str(work_path),
                 capture_output=True,
                 text=True,
                 timeout=timeout_s,
-                env={**os.environ, "TERM": "dumb"},  # Disable color codes
+                env=self._build_safe_env(),
             )
 
             # Combine stdout and stderr

@@ -4,7 +4,7 @@
 
 ## Overview
 
-[Chutes AI](https://chutes.ai) provides access to advanced language models through a simple API. BaseAgent supports Chutes as a first-class provider, offering access to the **Kimi K2.5-TEE** model with its powerful thinking capabilities.
+[Chutes AI](https://chutes.ai) provides access to advanced language models through a simple OpenAI-compatible API. BaseAgent uses Chutes as its primary provider with a direct httpx-based client, supporting models like **DeepSeek Chat** and **Kimi K2.5-TEE**.
 
 ---
 
@@ -12,31 +12,30 @@
 
 | Feature | Value |
 |---------|-------|
-| **API Base URL** | `https://llm.chutes.ai/v1` |
-| **Default Model** | `moonshotai/Kimi-K2.5-TEE` |
-| **Model Parameters** | 1T total, 32B activated |
-| **Context Window** | 256K tokens |
-| **Thinking Mode** | Enabled by default |
+| **API Base URL** | `https://api.chutes.ai/v1` |
+| **Default Model** | `deepseek/deepseek-chat` |
+| **API Format** | OpenAI-compatible |
+| **Context Window** | Model-dependent (up to 256K) |
+| **Client** | Direct httpx (no external LLM library) |
 
 ---
 
 ## Quick Setup
 
-### Step 1: Get Your API Token
+### Step 1: Get Your API Key
 
 1. Visit [chutes.ai](https://chutes.ai)
 2. Create an account or sign in
 3. Navigate to API settings
-4. Generate an API token
+4. Generate an API key
 
 ### Step 2: Configure Environment
 
 ```bash
-# Required: API token
-export CHUTES_API_TOKEN="your-token-from-chutes.ai"
+# Required: API key
+export CHUTES_API_KEY="your-key-from-chutes.ai"
 
-# Optional: Explicitly set provider and model
-export LLM_PROVIDER="chutes"
+# Optional: Specify a different model
 export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
 ```
 
@@ -53,16 +52,16 @@ python3 agent.py --instruction "Your task description"
 ```mermaid
 sequenceDiagram
     participant Agent as BaseAgent
-    participant Client as LiteLLM Client
+    participant Client as httpx Client
     participant Chutes as Chutes API
 
-    Agent->>Client: Initialize with CHUTES_API_TOKEN
-    Client->>Client: Configure litellm
+    Agent->>Client: Initialize with CHUTES_API_KEY
+    Client->>Client: Configure httpx with auth header
     
     loop Each Request
         Agent->>Client: chat(messages, tools)
         Client->>Chutes: POST /v1/chat/completions
-        Note over Client,Chutes: Authorization: Bearer $CHUTES_API_TOKEN
+        Note over Client,Chutes: Authorization: Bearer $CHUTES_API_KEY
         Chutes-->>Client: Response with tokens
         Client-->>Agent: LLMResponse
     end
@@ -70,45 +69,33 @@ sequenceDiagram
 
 ---
 
-## Model Details: Kimi K2.5-TEE
+## Supported Models
 
-The **moonshotai/Kimi-K2.5-TEE** model offers:
+### DeepSeek Chat (Default)
 
-### Architecture
+The default model `deepseek/deepseek-chat` is well-suited for general coding tasks:
+
+- Fast response times
+- Cost-effective
+- Good reasoning capabilities
+
+### Kimi K2.5-TEE (Alternative)
+
+The **moonshotai/Kimi-K2.5-TEE** model offers enhanced capabilities:
+
 - **Total Parameters**: 1 Trillion (1T)
 - **Activated Parameters**: 32 Billion (32B)
 - **Architecture**: Mixture of Experts (MoE)
 - **Context Length**: 256,000 tokens
-
-### Thinking Mode
-
-Kimi K2.5-TEE supports a "thinking mode" where the model shows its reasoning process:
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Model as Kimi K2.5-TEE
-    participant Response
-
-    User->>Model: Complex task instruction
-    
-    rect rgb(230, 240, 255)
-        Note over Model: Thinking Mode Active
-        Model->>Model: Analyze problem
-        Model->>Model: Consider approaches
-        Model->>Model: Evaluate options
-    end
-    
-    Model->>Response: <think>Reasoning process...</think>
-    Model->>Response: Final answer/action
-```
+- **Thinking Mode**: Shows reasoning process with `<think>` tags
 
 ### Temperature Settings
 
 | Mode | Temperature | Top-p | Description |
 |------|-------------|-------|-------------|
+| **Deterministic** | 0.0 | - | Consistent, reproducible outputs |
 | **Thinking** | 1.0 | 0.95 | More exploratory reasoning |
-| **Instant** | 0.6 | 0.95 | Faster, more deterministic |
+| **Instant** | 0.6 | 0.95 | Faster, balanced responses |
 
 ---
 
@@ -119,9 +106,9 @@ sequenceDiagram
 ```python
 # src/config/defaults.py
 CONFIG = {
-    "model": os.environ.get("LLM_MODEL", "moonshotai/Kimi-K2.5-TEE"),
+    "model": os.environ.get("LLM_MODEL", "deepseek/deepseek-chat"),
     "provider": "chutes",
-    "temperature": 1.0,  # For thinking mode
+    "temperature": 0.0,  # Deterministic by default
     "max_tokens": 16384,
 }
 ```
@@ -130,10 +117,10 @@ CONFIG = {
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `CHUTES_API_TOKEN` | Yes | - | API token from chutes.ai |
-| `LLM_PROVIDER` | No | `openrouter` | Set to `chutes` |
-| `LLM_MODEL` | No | `moonshotai/Kimi-K2.5-TEE` | Model identifier |
+| `CHUTES_API_KEY` | Yes | - | API key from chutes.ai |
+| `LLM_MODEL` | No | `deepseek/deepseek-chat` | Model identifier |
 | `LLM_COST_LIMIT` | No | `10.0` | Max cost in USD |
+| `CHUTES_BASE_URL` | No | `https://api.chutes.ai/v1` | API base URL |
 
 ---
 
@@ -183,65 +170,47 @@ def parse_thinking(response_text: str) -> tuple[str, str]:
 Chutes API follows OpenAI-compatible format:
 
 ```bash
-curl -X POST https://llm.chutes.ai/v1/chat/completions \
-  -H "Authorization: Bearer $CHUTES_API_TOKEN" \
+curl -X POST https://api.chutes.ai/v1/chat/completions \
+  -H "Authorization: Bearer $CHUTES_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "moonshotai/Kimi-K2.5-TEE",
+    "model": "deepseek/deepseek-chat",
     "messages": [
       {"role": "system", "content": "You are a helpful assistant."},
       {"role": "user", "content": "Hello!"}
     ],
     "max_tokens": 1024,
-    "temperature": 1.0,
-    "top_p": 0.95
+    "temperature": 0.0
   }'
 ```
 
 ---
 
-## Fallback to OpenRouter
+## Error Handling and Retry
 
-If Chutes is unavailable, BaseAgent can fall back to OpenRouter:
+BaseAgent includes built-in retry logic for transient failures:
 
 ```mermaid
 flowchart TB
-    Start[API Request] --> Check{Chutes Available?}
-    
-    Check -->|Yes| Chutes[Send to Chutes API]
-    Chutes --> Success{Success?}
+    Start[API Request] --> Send[Send to Chutes API]
+    Send --> Success{Success?}
     Success -->|Yes| Done[Return Response]
-    Success -->|No| Retry{Retry Count < 3?}
+    Success -->|No| Check{Retryable Error?}
     
-    Retry -->|Yes| Chutes
-    Retry -->|No| Fallback[Use OpenRouter]
+    Check -->|Yes| Retry{Retry Count < 3?}
+    Check -->|No| Fail[Raise LLMError]
     
-    Check -->|No| Fallback
-    Fallback --> Done
+    Retry -->|Yes| Wait[Exponential Backoff]
+    Retry -->|No| Fail
+    
+    Wait --> Send
 ```
 
-### Configuration for Fallback
+### Retryable Errors
 
-```bash
-# Primary: Chutes
-export CHUTES_API_TOKEN="..."
-export LLM_PROVIDER="chutes"
-
-# Fallback: OpenRouter
-export OPENROUTER_API_KEY="..."
-```
-
-### Switching Providers
-
-```bash
-# Switch to OpenRouter
-export LLM_PROVIDER="openrouter"
-export LLM_MODEL="openrouter/anthropic/claude-sonnet-4-20250514"
-
-# Switch back to Chutes
-export LLM_PROVIDER="chutes"
-export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
-```
+- `rate_limit` (HTTP 429) - Automatic retry with backoff
+- `server_error` (HTTP 5xx) - Automatic retry
+- `timeout` - Automatic retry
 
 ---
 
@@ -284,11 +253,11 @@ if self._total_cost >= self.cost_limit:
 LLMError: authentication_error
 ```
 
-**Solution**: Verify your token is correct and exported:
+**Solution**: Verify your API key is correct and exported:
 
 ```bash
-echo $CHUTES_API_TOKEN  # Should show your token
-export CHUTES_API_TOKEN="correct-token"
+echo $CHUTES_API_KEY  # Should show your key
+export CHUTES_API_KEY="correct-key"
 ```
 
 ### Rate Limiting
@@ -311,6 +280,10 @@ LLMError: Model 'xyz' not found
 **Solution**: Use the correct model identifier:
 
 ```bash
+# Default model
+export LLM_MODEL="deepseek/deepseek-chat"
+
+# Or alternative model
 export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
 ```
 
@@ -322,29 +295,39 @@ LLMError: timeout
 
 **Solution**: BaseAgent retries automatically. If persistent:
 - Check your internet connection
-- Verify Chutes API status
-- Consider using OpenRouter as fallback
+- Verify Chutes API status at [chutes.ai](https://chutes.ai)
 
 ---
 
-## Integration with LiteLLM
+## Implementation Details
 
-BaseAgent uses [LiteLLM](https://docs.litellm.ai/) for provider abstraction:
+BaseAgent uses a direct httpx-based client for Chutes API:
 
 ```python
 # src/llm/client.py
-import litellm
+import httpx
 
-# For Chutes, configure base URL
-litellm.api_base = "https://llm.chutes.ai/v1"
+# Direct client with OpenAI-compatible format
+client = httpx.Client(
+    base_url="https://api.chutes.ai/v1",
+    headers={
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    },
+)
 
 # Make request
-response = litellm.completion(
-    model="moonshotai/Kimi-K2.5-TEE",
-    messages=messages,
-    api_key=os.environ.get("CHUTES_API_TOKEN"),
-)
+response = client.post("/chat/completions", json={
+    "model": "deepseek/deepseek-chat",
+    "messages": messages,
+    "max_tokens": 16384,
+})
 ```
+
+This approach provides:
+- No external LLM library dependencies
+- Direct control over request/response handling
+- Simplified error handling and retry logic
 
 ---
 
@@ -352,22 +335,22 @@ response = litellm.completion(
 
 ### For Optimal Performance
 
-1. **Enable thinking mode** for complex reasoning tasks
-2. **Use appropriate temperature** (1.0 for exploration, 0.6 for precision)
-3. **Leverage the 256K context** for large codebases
+1. **Choose the right model** - Use `deepseek/deepseek-chat` for speed, `moonshotai/Kimi-K2.5-TEE` for complex reasoning
+2. **Use appropriate temperature** (0.0 for deterministic, higher for creative tasks)
+3. **Leverage context windows** - Models support large context for codebases
 4. **Monitor costs** with `LLM_COST_LIMIT`
 
 ### For Reliability
 
-1. **Set up fallback** to OpenRouter
-2. **Handle rate limits** gracefully (automatic in BaseAgent)
-3. **Log responses** for debugging complex tasks
+1. **Handle rate limits** gracefully (automatic in BaseAgent with retry logic)
+2. **Log responses** for debugging complex tasks
+3. **Set appropriate timeouts** for long-running operations
 
 ### For Cost Efficiency
 
-1. **Enable prompt caching** (reduces costs by 90%)
-2. **Use context management** to avoid token waste
-3. **Set reasonable cost limits** for testing
+1. **Use context management** to avoid token waste
+2. **Set reasonable cost limits** for testing
+3. **Choose cost-effective models** for simple tasks
 
 ---
 

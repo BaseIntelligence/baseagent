@@ -16,8 +16,8 @@ The main configuration is stored in the `CONFIG` dictionary:
 # src/config/defaults.py
 CONFIG = {
     # Model Settings
-    "model": "openrouter/anthropic/claude-sonnet-4-20250514",
-    "provider": "openrouter",
+    "model": "deepseek/deepseek-chat",
+    "provider": "chutes",
     "temperature": 0.0,
     "max_tokens": 16384,
     "reasoning_effort": "none",
@@ -57,30 +57,24 @@ CONFIG = {
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_MODEL` | `openrouter/anthropic/claude-sonnet-4-20250514` | Model identifier |
-| `LLM_PROVIDER` | `openrouter` | Provider name (`chutes`, `openrouter`, etc.) |
+| `LLM_MODEL` | `deepseek/deepseek-chat` | Model identifier |
 | `LLM_COST_LIMIT` | `10.0` | Maximum cost in USD before aborting |
+| `CHUTES_BASE_URL` | `https://api.chutes.ai/v1` | API base URL |
 
 ### API Keys
 
 | Variable | Provider | Description |
 |----------|----------|-------------|
-| `CHUTES_API_TOKEN` | Chutes AI | Token from chutes.ai |
-| `OPENROUTER_API_KEY` | OpenRouter | API key from openrouter.ai |
-| `ANTHROPIC_API_KEY` | Anthropic | Direct Anthropic API key |
-| `OPENAI_API_KEY` | OpenAI | OpenAI API key |
+| `CHUTES_API_KEY` | Chutes AI | API key from chutes.ai |
 
 ### Example Setup
 
 ```bash
-# For Chutes AI
-export CHUTES_API_TOKEN="your-token"
-export LLM_PROVIDER="chutes"
-export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
+# For Chutes AI (default provider)
+export CHUTES_API_KEY="your-key"
 
-# For OpenRouter
-export OPENROUTER_API_KEY="sk-or-v1-..."
-export LLM_MODEL="openrouter/anthropic/claude-sonnet-4-20250514"
+# Optional: Specify a different model
+export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
 ```
 
 ---
@@ -102,8 +96,8 @@ graph LR
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `model` | `str` | `openrouter/anthropic/claude-sonnet-4-20250514` | Full model identifier with provider prefix |
-| `provider` | `str` | `openrouter` | LLM provider name |
+| `model` | `str` | `deepseek/deepseek-chat` | Model identifier |
+| `provider` | `str` | `chutes` | LLM provider name |
 | `temperature` | `float` | `0.0` | Response randomness (0 = deterministic) |
 | `max_tokens` | `int` | `16384` | Maximum tokens in LLM response |
 | `reasoning_effort` | `str` | `none` | Reasoning depth: `none`, `minimal`, `low`, `medium`, `high`, `xhigh` |
@@ -174,42 +168,25 @@ graph TB
 
 ---
 
-## Provider-Specific Configuration
+## Provider Configuration
 
-### Chutes AI
+### Chutes AI (Default Provider)
 
-```python
+```bash
 # Environment
-CHUTES_API_TOKEN="your-token"
-LLM_PROVIDER="chutes"
-LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
+CHUTES_API_KEY="your-key"
+LLM_MODEL="deepseek/deepseek-chat"  # Default model
 
-# Model features
-# - 1T parameters, 32B activated
-# - 256K context window
-# - Thinking mode enabled by default
-# - Temperature: 1.0 (thinking), 0.6 (instant)
+# Alternative models
+LLM_MODEL="moonshotai/Kimi-K2.5-TEE"  # For complex reasoning tasks
 ```
 
-### OpenRouter
+### Available Models
 
-```python
-# Environment
-OPENROUTER_API_KEY="sk-or-v1-..."
-LLM_MODEL="openrouter/anthropic/claude-sonnet-4-20250514"
-
-# Requires openrouter/ prefix for litellm
-```
-
-### Direct Anthropic
-
-```python
-# Environment
-ANTHROPIC_API_KEY="sk-ant-..."
-LLM_MODEL="claude-3-5-sonnet-20241022"
-
-# No prefix needed for direct API
-```
+| Model | Description | Context | Best For |
+|-------|-------------|---------|----------|
+| `deepseek/deepseek-chat` | Fast, cost-effective | Large | General tasks |
+| `moonshotai/Kimi-K2.5-TEE` | 1T params, thinking mode | 256K | Complex reasoning |
 
 ---
 

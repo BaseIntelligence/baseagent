@@ -3,27 +3,43 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 
-def resolve_path(path: Union[str, Path], cwd: Optional[Path] = None) -> Path:
-    """Resolve a path relative to CWD.
+def resolve_path(path: Union[str, Path], cwd: Optional[Path] = None, allow_escape: bool = False) -> Path:
+    """Resolve a path relative to CWD with optional containment validation.
 
     Args:
         path: Path to resolve
         cwd: Current working directory (defaults to os.getcwd())
+        allow_escape: If False, raises ValueError when resolved path is outside cwd
 
     Returns:
         Resolved absolute path
+
+    Raises:
+        ValueError: If allow_escape is False and path escapes the cwd
     """
     if cwd is None:
         cwd = Path.cwd()
 
     p = Path(path)
     if p.is_absolute():
-        return p.resolve()
+        resolved = p.resolve()
+    else:
+        resolved = (cwd / p).resolve()
 
-    return (cwd / p).resolve()
+    # Validate containment if not explicitly allowed to escape
+    if not allow_escape:
+        try:
+            resolved.relative_to(cwd.resolve())
+        except ValueError:
+            raise ValueError(
+                f"Path '{path}' resolves to '{resolved}' which is outside "
+                f"the working directory '{cwd}'. Path traversal is not allowed."
+            )
+
+    return resolved
 
 
 def is_binary_file(path: Path) -> bool:
