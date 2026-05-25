@@ -18,7 +18,7 @@ BaseAgent implements sophisticated context management inspired by OpenCode and C
 
 ```mermaid
 graph TB
-    subgraph Window["Claude Opus 4.5 Context Window (200K tokens)"]
+    subgraph Window["Configured Model Context Window (200K tokens)"]
         Output["Reserved for Output<br/>32K tokens"]
         Usable["Usable Context<br/>168K tokens"]
     end

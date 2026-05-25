@@ -121,7 +121,7 @@ Agent logs go to stderr:
 
 ```
 [14:30:15] [superagent] ============================================================
-[14:30:15] [superagent] SuperAgent Starting (SDK 3.0 - litellm)
+[14:30:15] [superagent] SuperAgent Starting (SDK 3.0 - DeepSeek API)
 [14:30:15] [superagent] ============================================================
 [14:30:15] [superagent] Model: deepseek-v4-pro
 [14:30:15] [superagent] Instruction: Create hello.txt with 'Hello World'...

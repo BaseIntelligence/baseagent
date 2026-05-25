@@ -48,7 +48,7 @@ python3 agent.py --instruction "Your task description"
 ```mermaid
 sequenceDiagram
     participant Agent as BaseAgent
-    participant Client as LiteLLM Client
+    participant Client as DeepSeek HTTP Client
     participant DeepSeek as DeepSeek API
 
     Agent->>Client: Initialize with DEEPSEEK_API_KEY
@@ -74,7 +74,6 @@ sequenceDiagram
 CONFIG = {
     "model": "deepseek-v4-pro",
     "provider": "deepseek",
-    "base_url": "https://api.deepseek.com",
     "temperature": 1.0,
     "max_tokens": 16384,
 }
@@ -85,7 +84,7 @@ CONFIG = {
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DEEPSEEK_API_KEY` | Yes | none | API key for DeepSeek |
-| `DEEPSEEK_BASE_URL` | Yes | `https://api.deepseek.com` | DeepSeek API base URL |
+| `DEEPSEEK_BASE_URL` | No | `https://api.deepseek.com` | Optional DeepSeek API base URL override |
 | `LLM_MODEL` | Yes | `deepseek-v4-pro` | Configured DeepSeek model |
 | `LLM_COST_LIMIT` | No | `10.0` | Max cost in USD |
 
@@ -163,21 +162,18 @@ LLMError: timeout
 
 ---
 
-## Integration with LiteLLM
+## Integration with the HTTP Client
 
-BaseAgent uses LiteLLM as the client layer while keeping challenge execution on DeepSeek:
+BaseAgent uses `src.llm.client.LLMClient`, backed by `httpx`, while keeping challenge execution on DeepSeek:
 
 ```python
-# src/llm/client.py
-import litellm
+from src.llm.client import LLMClient
 
-litellm.api_base = "https://api.deepseek.com"
-
-response = litellm.completion(
+client = LLMClient(
     model="deepseek-v4-pro",
-    messages=messages,
-    api_key=os.environ.get("DEEPSEEK_API_KEY"),
+    api_key=os.environ["DEEPSEEK_API_KEY"],
 )
+response = client.chat(messages)
 ```
 
 ---

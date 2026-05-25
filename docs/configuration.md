@@ -18,7 +18,6 @@ CONFIG = {
     # Model Settings
     "model": "deepseek-v4-pro",
     "provider": "deepseek",
-    "base_url": "https://api.deepseek.com",
     "temperature": 0.0,
     "max_tokens": 16384,
     "reasoning_effort": "none",
@@ -100,7 +99,6 @@ graph LR
 |---------|------|---------|-------------|
 | `model` | `str` | `deepseek-v4-pro` | DeepSeek model identifier |
 | `provider` | `str` | `deepseek` | LLM provider name |
-| `base_url` | `str` | `https://api.deepseek.com` | DeepSeek API base URL |
 | `temperature` | `float` | `0.0` | Response randomness (0 = deterministic) |
 | `max_tokens` | `int` | `16384` | Maximum tokens in LLM response |
 | `reasoning_effort` | `str` | `none` | Reasoning depth: `none`, `minimal`, `low`, `medium`, `high`, `xhigh` |

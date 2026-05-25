@@ -80,7 +80,7 @@ graph TB
     end
     
     subgraph LLM["LLM Layer"]
-        Client["LiteLLM Client<br/>(src/llm/client.py)"]
+        Client["DeepSeek HTTP Client<br/>(src/llm/client.py)"]
         API["DeepSeek API<br/>https://api.deepseek.com"]
     end
     

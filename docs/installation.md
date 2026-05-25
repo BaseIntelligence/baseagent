@@ -66,8 +66,7 @@ pip install -e .
 BaseAgent requires these Python packages:
 
 ```
-litellm>=1.0.0          # LLM API abstraction
-httpx>=0.24.0           # HTTP client
+httpx>=0.27.0           # DeepSeek HTTP client
 pydantic>=2.0.0         # Data validation
 ```
 
@@ -116,7 +115,6 @@ python3 --version
 ### Step 2: Verify Dependencies
 
 ```bash
-python3 -c "import litellm; print('litellm:', litellm.__version__)"
 python3 -c "import httpx; print('httpx:', httpx.__version__)"
 python3 -c "import pydantic; print('pydantic:', pydantic.__version__)"
 ```
@@ -166,14 +164,14 @@ baseagent/
 
 ## Troubleshooting
 
-### Issue: `ModuleNotFoundError: No module named 'litellm'`
+### Issue: Missing dependencies
 
 **Solution**: Install dependencies
 
 ```bash
 pip install -r requirements.txt
 # or
-pip install litellm httpx pydantic
+pip install httpx pydantic rich typer
 ```
 
 ### Issue: `ImportError: cannot import name 'run_agent_loop'`

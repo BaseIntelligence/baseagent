@@ -13,8 +13,11 @@ export DEEPSEEK_API_KEY="your-token"
 export DEEPSEEK_BASE_URL="https://api.deepseek.com"
 export LLM_MODEL="deepseek-v4-pro"
 
-# Run with Term SDK
-python agent.py
+# Run local CLI entrypoint
+python agent.py --instruction "Your task here"
+
+# Harbor/agent-challenge ZIP entrypoint
+# CHALLENGE_HARBOR_AGENT_IMPORT_PATH=submitted_agent:Agent
 
 # Local testing with Term Challenge
 git clone https://github.com/PlatformNetwork/term-challenge.git
@@ -23,18 +26,19 @@ pip install -e term-challenge/sdk/python/
 
 ## Challenge API Policy
 
-Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
+Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Harbor context.env may forward DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, LLM_MODEL, and LLM_COST_LIMIT. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
 
 ## Project Structure
 
 ```
 baseagent/
-├── agent.py           # Entry point for Term SDK
+├── submitted_agent.py # Harbor ZIP entry point (`submitted_agent:Agent`)
+├── agent.py           # Local CLI entry point
 ├── src/
 │   ├── core/
 │   │   ├── loop.py    # Main agent loop (caching, verification)
 │   │   └── compaction.py  # Context management
-│   ├── tools/         # Tool implementations
+│   ├── tools/         # Tool implementations, including Harbor environment.exec bridge
 │   ├── prompts/
 │   │   └── system.py  # Codex-inspired system prompt
 │   └── api/

@@ -62,7 +62,7 @@ graph TB
     end
     
     subgraph LLM["LLM Layer"]
-        Client["LiteLLM Client"]
+        Client["DeepSeek HTTP Client"]
         Provider["DeepSeek API"]
     end
     
@@ -107,7 +107,7 @@ baseagent/
 │   │   ├── loop.py          # Main agent loop
 │   │   └── compaction.py    # Context management
 │   ├── llm/
-│   │   └── client.py        # LLM client (litellm)
+│   │   └── client.py        # LLM client (DeepSeek/httpx)
 │   ├── config/
 │   │   └── defaults.py      # Configuration
 │   ├── tools/               # Tool implementations
