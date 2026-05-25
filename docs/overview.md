@@ -81,7 +81,7 @@ graph TB
     
     subgraph LLM["LLM Layer"]
         Client["LiteLLM Client<br/>(src/llm/client.py)"]
-        API["Provider API<br/>(Chutes/OpenRouter)"]
+        API["DeepSeek API<br/>https://api.deepseek.com"]
     end
     
     subgraph Tools["Tool System"]
@@ -115,10 +115,10 @@ BaseAgent runs in **fully autonomous mode**:
 
 ### Prompt Caching
 
-Achieves **90%+ cache hit rate** using Anthropic's prompt caching:
+Uses prompt caching when supported by the configured DeepSeek API path:
 - System prompt cached for stability
 - Last 2 messages cached to extend prefix
-- Reduces API costs by 90%
+- Reduces repeated prompt work when cache support is available
 
 ### Context Management
 
@@ -152,7 +152,7 @@ sequenceDiagram
     participant User
     participant CLI as agent.py
     participant Loop as Agent Loop
-    participant LLM as LLM (Chutes/OpenRouter)
+    participant LLM as LLM (DeepSeek)
     participant Tools as Tool Registry
 
     User->>CLI: python agent.py --instruction "..."

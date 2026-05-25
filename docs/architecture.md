@@ -262,7 +262,7 @@ Intelligent context management that:
 ### `src/llm/client.py` - LLM Client
 
 LiteLLM-based client that:
-- Supports multiple providers (Chutes, OpenRouter, etc.)
+- Uses the DeepSeek API for challenge runs
 - Tracks token usage and costs
 - Handles tool/function calling format
 - Enforces cost limits

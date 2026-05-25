@@ -4,6 +4,8 @@
 
 BaseAgent is a high-performance autonomous agent designed for the [Term Challenge](https://term.challenge). It leverages LLM-driven decision making with advanced context management and cost optimization techniques.
 
+Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
+
 ---
 
 ## Table of Contents
@@ -23,8 +25,8 @@ BaseAgent is a high-performance autonomous agent designed for the [Term Challeng
 - [Context Management](./context-management.md) - Token management and compaction
 - [Best Practices](./best-practices.md) - Optimal usage patterns
 
-### LLM Providers
-- [Chutes API Integration](./chutes-integration.md) - Using Chutes as your LLM provider
+### LLM Provider
+- [DeepSeek API Integration](./chutes-integration.md) - Using DeepSeek as the challenge API
 
 ---
 
@@ -41,7 +43,7 @@ BaseAgent is a high-performance autonomous agent designed for the [Term Challeng
 | [Tools](./tools.md) | Complete tools reference |
 | [Context Management](./context-management.md) | Memory and token optimization |
 | [Best Practices](./best-practices.md) | Tips for optimal performance |
-| [Chutes Integration](./chutes-integration.md) | Chutes API setup and usage |
+| [DeepSeek Integration](./chutes-integration.md) | DeepSeek API setup and usage |
 
 ---
 
@@ -61,7 +63,7 @@ graph TB
     
     subgraph LLM["LLM Layer"]
         Client["LiteLLM Client"]
-        Provider["Provider (Chutes/OpenRouter)"]
+        Provider["DeepSeek API"]
     end
     
     subgraph Tools["Tool System"]
@@ -91,7 +93,7 @@ graph TB
 - **Prompt Caching** - 90%+ cache hit rate for significant cost reduction
 - **Context Management** - Intelligent pruning and compaction for long tasks
 - **Self-Verification** - Automatic validation before task completion
-- **Multi-Provider** - Supports Chutes AI, OpenRouter, and litellm-compatible providers
+- **DeepSeek Only for Challenge Runs** - Uses `DEEPSEEK_API_KEY`, `https://api.deepseek.com`, provider `deepseek`, and `deepseek-v4-pro`
 
 ---
 
