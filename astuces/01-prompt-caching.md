@@ -7,9 +7,9 @@ Without caching, every API call sends the full conversation history. For long ta
 - Paying full price for each request
 - Slow response times
 
-## How Anthropic Caching Works
+## How Prompt Caching Works
 
-Anthropic caches based on **prefixes**. If the first N tokens of your request match a cached prefix, those tokens are served from cache at 90% discount.
+Provider prompt caches generally work from **prefixes**. If the first N tokens of your request match a cached prefix, those tokens may be served from cache at a reduced cost.
 
 Key insight: **Cache breakpoints extend the cached prefix**.
 
@@ -27,7 +27,7 @@ Codex CLI caches:
 1. **System messages** (first 2)
 2. **Last 2 non-system messages**
 
-This creates up to 4 cache breakpoints (Anthropic's limit).
+This creates up to 4 cache breakpoints.
 
 Why last 2 messages? Because the entire conversation history BEFORE those messages becomes the cached prefix!
 
@@ -35,7 +35,7 @@ Why last 2 messages? Because the entire conversation history BEFORE those messag
 
 ```python
 def _apply_caching(messages: List[Dict], enabled: bool = True) -> List[Dict]:
-    """Apply cache_control to messages for Anthropic prompt caching."""
+    """Apply cache_control to messages for prompt caching."""
     if not enabled or not messages:
         return messages
     

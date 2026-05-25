@@ -15,7 +15,7 @@ For a typical task:
 - 100k context average
 - 500 output tokens per turn
 
-Costs vary significantly by model choice. Kimi K2.5-TEE offers a good balance of performance and cost.
+For challenge runs, BaseAgent uses DeepSeek API with `deepseek-v4-pro` for cost reasons.
 
 ## Optimization Strategies
 
