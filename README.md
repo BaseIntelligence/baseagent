@@ -101,7 +101,7 @@ python agent.py --instruction "Your task here..."
 
 ## Agent-Challenge ZIP Entrypoint
 
-Agent-challenge Harbor runners should import `submitted_agent:Agent` from the root of the submitted ZIP. The adapter keeps `agent.py` available for local `--instruction` runs, but Harbor execution uses `submitted_agent.py` and `src/tools/harbor_registry.py` so task tools run through `environment.exec` in the remote task workspace. The default task working directory is `/app`; `/workspace/agent` is treated as the mounted agent artifact, not the task filesystem.
+Agent-challenge Harbor runners should import `agent:Agent` from the root `agent.py` file in the submitted ZIP. The same file also remains available for local `--instruction` runs. Harbor execution uses `src/tools/harbor_registry.py` so task tools run through `environment.exec` in the remote task workspace. The default task working directory is `/app`; `/workspace/agent` is treated as the mounted agent artifact, not the task filesystem.
 
 Forward only DeepSeek runtime configuration into Harbor: `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, optional `LLM_MODEL`, and optional `LLM_COST_LIMIT`. BaseAgent does not use OpenRouter, Anthropic, OpenAI, Chutes, or Harbor as runtime dependencies.
 
@@ -111,8 +111,7 @@ Forward only DeepSeek runtime configuration into Harbor: `DEEPSEEK_API_KEY`, opt
 
 ```
 baseagent/
-├── submitted_agent.py       # Harbor ZIP entrypoint (`submitted_agent:Agent`)
-├── agent.py                 # Local CLI entry point
+├── agent.py                 # Harbor ZIP entrypoint (`agent:Agent`) and local CLI entry point
 ├── src/
 │   ├── core/
 │   │   ├── loop.py          # Main agent loop

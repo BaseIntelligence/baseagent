@@ -16,11 +16,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import asyncio
+import importlib.util
 import os
 import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -29,31 +32,131 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Auto-install dependencies if missing
 def ensure_dependencies():
     """Install dependencies if not present."""
-    try:
-        import httpx
-        import pydantic
-    except ImportError:
-        print("[setup] Installing dependencies...", file=sys.stderr)
-        agent_dir = Path(__file__).parent
-        req_file = agent_dir / "requirements.txt"
-        if req_file.exists():
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-r", str(req_file), "-q"], check=True
-            )
-        else:
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", str(agent_dir), "-q"], check=True
-            )
-        print("[setup] Dependencies installed", file=sys.stderr)
+    if importlib.util.find_spec("httpx") and importlib.util.find_spec("pydantic"):
+        return
+    print("[setup] Installing dependencies...", file=sys.stderr)
+    agent_dir = Path(__file__).parent
+    req_file = agent_dir / "requirements.txt"
+    if req_file.exists():
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-r", str(req_file), "-q"], check=True
+        )
+    else:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", str(agent_dir), "-q"], check=True
+        )
+    print("[setup] Dependencies installed", file=sys.stderr)
 
 
 ensure_dependencies()
 
-from src.config.defaults import CONFIG
-from src.core.loop import run_agent_loop
-from src.llm.client import CostLimitExceeded, LLMClient
-from src.output.jsonl import ErrorEvent, emit
-from src.tools.registry import ToolRegistry
+from src.config.defaults import CONFIG, get_config  # noqa: E402
+from src.core.loop import run_agent_loop  # noqa: E402
+from src.llm.client import CostLimitExceeded, LLMClient  # noqa: E402
+from src.output.jsonl import ErrorEvent, emit  # noqa: E402
+from src.tools.harbor_registry import (  # noqa: E402
+    DEFAULT_HARBOR_CWD,
+    HarborAgentContext,
+    HarborToolRegistry,
+)
+from src.tools.registry import ToolRegistry  # noqa: E402
+
+try:
+    from harbor.agents.base import BaseAgent as HarborBaseAgent
+except ModuleNotFoundError:
+    HarborBaseAgent = object
+
+
+class Agent(HarborBaseAgent):
+    """Harbor-compatible BaseAgent adapter for agent-challenge ZIP submissions."""
+
+    def __init__(
+        self,
+        logs_dir: Path | None = None,
+        model_name: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        if HarborBaseAgent is not object:
+            super().__init__(logs_dir=logs_dir or Path("."), model_name=model_name, **kwargs)
+        self.environment: Any | None = None
+
+    @staticmethod
+    def name() -> str:
+        return "BaseAgent"
+
+    @staticmethod
+    def version() -> str:
+        return "1.0.0"
+
+    @staticmethod
+    def import_path() -> str:
+        return "agent:Agent"
+
+    async def setup(self, environment: Any) -> None:
+        self.environment = environment
+
+    async def run(self, instruction: str, environment: Any, context: Any) -> str:
+        active_environment = environment or self.environment
+        if active_environment is None:
+            raise ValueError("Harbor environment is required")
+
+        context_env = _extract_context_env(context)
+        api_key = os.environ.get("DEEPSEEK_API_KEY") or context_env.get("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise ValueError("DEEPSEEK_API_KEY is required for BaseAgent Harbor runs")
+
+        config = get_config()
+        if context_env.get("LLM_MODEL"):
+            config["model"] = context_env["LLM_MODEL"]
+
+        cost_limit = _parse_optional_float(context_env.get("LLM_COST_LIMIT"))
+        base_url = context_env.get("DEEPSEEK_BASE_URL") or os.environ.get("DEEPSEEK_BASE_URL")
+
+        llm = LLMClient(
+            model=config["model"],
+            temperature=config.get("temperature"),
+            max_tokens=int(config.get("max_tokens", 16384)),
+            cost_limit=cost_limit,
+            base_url=base_url,
+            api_key=api_key,
+        )
+
+        loop = asyncio.get_running_loop()
+        harbor_context = HarborAgentContext(
+            instruction=instruction,
+            environment=active_environment,
+            loop=loop,
+            cwd=DEFAULT_HARBOR_CWD,
+            env=context_env,
+        )
+        tools = HarborToolRegistry(harbor_context, cwd=DEFAULT_HARBOR_CWD)
+
+        try:
+            await asyncio.to_thread(run_agent_loop, llm, tools, harbor_context, config)
+        finally:
+            close = getattr(llm, "close", None)
+            if callable(close):
+                close()
+
+        return "Task completed"
+
+
+def _extract_context_env(context: Any) -> dict[str, str]:
+    if context is None:
+        return {}
+    if isinstance(context, dict):
+        raw_env = context.get("env", {})
+    else:
+        raw_env = getattr(context, "env", {})
+    if raw_env is None:
+        return {}
+    return {str(key): str(value) for key, value in dict(raw_env).items()}
+
+
+def _parse_optional_float(value: str | None) -> float | None:
+    if value in (None, ""):
+        return None
+    return float(value)
 
 
 class AgentContext:

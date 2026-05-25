@@ -17,7 +17,7 @@ export LLM_MODEL="deepseek-v4-pro"
 python agent.py --instruction "Your task here"
 
 # Harbor/agent-challenge ZIP entrypoint
-# CHALLENGE_HARBOR_AGENT_IMPORT_PATH=submitted_agent:Agent
+# CHALLENGE_HARBOR_AGENT_IMPORT_PATH=agent:Agent
 
 # Local testing with Term Challenge
 git clone https://github.com/PlatformNetwork/term-challenge.git
@@ -32,8 +32,7 @@ Challenge API policy: this agent is configured to use only the DeepSeek API for 
 
 ```
 baseagent/
-├── submitted_agent.py # Harbor ZIP entry point (`submitted_agent:Agent`)
-├── agent.py           # Local CLI entry point
+├── agent.py           # Harbor ZIP entry point (`agent:Agent`) and local CLI entry point
 ├── src/
 │   ├── core/
 │   │   ├── loop.py    # Main agent loop (caching, verification)

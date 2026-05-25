@@ -86,46 +86,46 @@ class RecordingLLM:
         return LoopResponse()
 
 
-def test_submitted_agent_importable_without_harbor():
+def test_agent_entrypoint_importable_without_harbor():
     sys.modules.pop("harbor", None)
 
-    import submitted_agent
+    import agent as agent_module
 
-    agent = submitted_agent.Agent()
-    assert submitted_agent.Agent.name() == "BaseAgent"
-    assert submitted_agent.Agent.version() == "1.0.0"
-    assert submitted_agent.Agent.import_path() == "submitted_agent:Agent"
-    assert agent.name() == "BaseAgent"
-    assert agent.version() == "1.0.0"
-    assert agent.import_path() == "submitted_agent:Agent"
+    instance = agent_module.Agent()
+    assert agent_module.Agent.name() == "BaseAgent"
+    assert agent_module.Agent.version() == "1.0.0"
+    assert agent_module.Agent.import_path() == "agent:Agent"
+    assert instance.name() == "BaseAgent"
+    assert instance.version() == "1.0.0"
+    assert instance.import_path() == "agent:Agent"
 
 
-def test_submitted_agent_accepts_harbor_factory_kwargs(tmp_path):
-    import submitted_agent
+def test_agent_entrypoint_accepts_harbor_factory_kwargs(tmp_path):
+    import agent as agent_module
 
-    agent = submitted_agent.Agent(logs_dir=tmp_path, model_name="deepseek-v4-pro", extra="ignored")
+    instance = agent_module.Agent(logs_dir=tmp_path, model_name="deepseek-v4-pro", extra="ignored")
 
-    assert agent.import_path() == "submitted_agent:Agent"
+    assert instance.import_path() == "agent:Agent"
 
 
 @pytest.mark.asyncio
 async def test_run_requires_deepseek_api_key(monkeypatch, tmp_path):
-    import submitted_agent
+    import agent
 
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "ignored")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "ignored")
     monkeypatch.setenv("OPENROUTER_API_KEY", "ignored")
     monkeypatch.setenv("CHUTES_API_KEY", "ignored")
-    monkeypatch.setattr(submitted_agent, "LLMClient", lambda **kwargs: pytest.fail("LLMClient should not be constructed"))
+    monkeypatch.setattr(agent, "LLMClient", lambda **kwargs: pytest.fail("LLMClient should not be constructed"))
 
     with pytest.raises(ValueError, match="DEEPSEEK_API_KEY"):
-        await submitted_agent.Agent().run("do work", FakeHarborEnvironment(tmp_path), SimpleNamespace(env={}))
+        await agent.Agent().run("do work", FakeHarborEnvironment(tmp_path), SimpleNamespace(env={}))
 
 
 @pytest.mark.asyncio
 async def test_context_env_hydrates_deepseek_only(monkeypatch, tmp_path):
-    import submitted_agent
+    import agent
     from src.tools.harbor_registry import HarborToolRegistry
 
     captured = {}
@@ -148,8 +148,8 @@ async def test_context_env_hydrates_deepseek_only(monkeypatch, tmp_path):
     monkeypatch.setenv("OPENAI_API_KEY", "ignored-openai")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "ignored-anthropic")
     monkeypatch.setenv("CHUTES_API_KEY", "ignored-chutes")
-    monkeypatch.setattr(submitted_agent, "LLMClient", DummyLLM)
-    monkeypatch.setattr(submitted_agent, "run_agent_loop", fake_loop)
+    monkeypatch.setattr(agent, "LLMClient", DummyLLM)
+    monkeypatch.setattr(agent, "run_agent_loop", fake_loop)
 
     env = {
         "DEEPSEEK_API_KEY": "context-key",
@@ -159,7 +159,7 @@ async def test_context_env_hydrates_deepseek_only(monkeypatch, tmp_path):
         "OPENROUTER_API_KEY": "ignored-openrouter",
     }
 
-    result = await submitted_agent.Agent().run("do work", FakeHarborEnvironment(tmp_path), {"env": env})
+    result = await agent.Agent().run("do work", FakeHarborEnvironment(tmp_path), {"env": env})
 
     assert result == "Task completed"
     assert captured["llm_kwargs"] == {
@@ -271,7 +271,7 @@ def test_loop_does_not_send_deepseek_incompatible_reasoning_payload():
 
 
 def test_runtime_zip_contract_includes_harbor_entrypoint_and_validates_if_available(tmp_path):
-    required = {"submitted_agent.py", "agent.py", "pyproject.toml", "requirements.txt"}
+    required = {"agent.py", "pyproject.toml", "requirements.txt"}
     paths = [ROOT / name for name in required]
     paths.extend(sorted((ROOT / "src").glob("**/*.py")))
 
