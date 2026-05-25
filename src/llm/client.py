@@ -282,7 +282,6 @@ class LLMClient:
         for msg in messages:
             new_msg = dict(msg)
 
-            # Handle content with cache_control (Anthropic-specific, strip for OpenAI compat)
             content = new_msg.get("content")
             if isinstance(content, list):
                 # Convert multipart format, removing cache_control
@@ -320,7 +319,3 @@ class LLMClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
         return False
-
-
-# Alias for backward compatibility
-LiteLLMClient = LLMClient

@@ -97,15 +97,13 @@ def _apply_caching(
     - Cache first 2 system messages (stable prefix)
     - Cache last 2 non-system messages (extends cache to cover conversation history)
 
-    How Anthropic caching works:
+    How prefix caching works:
     - Cache is based on IDENTICAL PREFIX
-    - A cache_control breakpoint tells Anthropic to cache everything BEFORE it
+    - A cache_control breakpoint tells compatible providers to cache everything before it
     - By marking the last messages, we cache the entire conversation history
     - Each new request only adds new messages after the cached prefix
 
-    Anthropic limits:
-    - Maximum 4 cache_control breakpoints
-    - Minimum tokens per breakpoint: 1024 (Sonnet), 4096 (Opus 4.5 on Bedrock)
+    Provider limits vary; unsupported cache markers are stripped before DeepSeek requests.
 
     Reference: OpenCode transform.ts applyCaching()
     """
@@ -127,7 +125,6 @@ def _apply_caching(
     # Determine which messages to cache:
     # 1. First 2 system messages (stable system prompt)
     # 2. Last 2 non-system messages (extends cache to conversation history)
-    # Total: up to 4 breakpoints (Anthropic limit)
     indices_to_cache = set()
 
     # Add first 2 system messages
@@ -211,7 +208,6 @@ def run_agent_loop(
     total_output_tokens = 0
     total_cached_tokens = 0
     pending_completion = False
-    last_agent_message = ""
 
     max_iterations = config.get("max_iterations", 200)
     cache_enabled = config.get("cache_enabled", True)
@@ -251,7 +247,6 @@ def run_agent_loop(
             # ================================================================
             max_retries = 5
             response = None
-            last_error = None
 
             for attempt in range(1, max_retries + 1):
                 try:
@@ -259,9 +254,6 @@ def run_agent_loop(
                         cached_messages,
                         tools=tool_specs,
                         max_tokens=config.get("max_tokens", 16384),
-                        extra_body={
-                            "reasoning": {"effort": config.get("reasoning_effort", "xhigh")},
-                        },
                     )
 
                     # Track token usage from response
@@ -278,7 +270,6 @@ def run_agent_loop(
                     raise  # Don't retry cost limit errors
 
                 except LLMError as e:
-                    last_error = e
                     error_msg = str(e.message) if hasattr(e, "message") else str(e)
                     _log(f"LLM error (attempt {attempt}/{max_retries}): {e.code} - {error_msg}")
 
@@ -300,7 +291,6 @@ def run_agent_loop(
                         raise
 
                 except Exception as e:
-                    last_error = e
                     error_msg = str(e)
                     _log(
                         f"Unexpected error (attempt {attempt}/{max_retries}): {type(e).__name__}: {error_msg}"
@@ -337,8 +327,6 @@ def run_agent_loop(
         response_text = response.text or ""
 
         if response_text:
-            last_agent_message = response_text
-
             # Emit agent message
             item_id = next_item_id()
             emit(ItemCompletedEvent(item=make_agent_message_item(item_id, response_text)))
@@ -380,7 +368,7 @@ You indicated the task might be complete. Before finishing, you MUST perform a t
 - List EVERY requirement, constraint, and expected outcome mentioned
 - Check if there are any implicit requirements you might have missed
 
-### 2. Work Verification  
+### 2. Work Verification
 - For EACH requirement identified, verify it was completed:
   - Run commands to check file contents, test outputs, or verify state
   - Do NOT assume something works - actually verify it

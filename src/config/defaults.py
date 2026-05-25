@@ -26,7 +26,6 @@ CONFIG: Dict[str, Any] = {
     "model": os.environ.get("LLM_MODEL", "deepseek-v4-pro"),
     # Provider
     "provider": "deepseek",
-    # Reasoning effort: none, minimal, low, medium, high, xhigh (not used for Claude)
     "reasoning_effort": "none",
     # Token limits
     "max_tokens": 16384,
@@ -44,7 +43,6 @@ CONFIG: Dict[str, Any] = {
     # ==========================================================================
     # Context Management (like OpenCode/Codex)
     # ==========================================================================
-    # Model context window (Claude Opus 4.5 = 200K)
     "model_context_limit": 200_000,
     # Reserved tokens for output
     "output_token_max": 32_000,
