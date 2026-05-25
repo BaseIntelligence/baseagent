@@ -30,7 +30,14 @@ except ModuleNotFoundError:
 class Agent(HarborBaseAgent):
     """Harbor-compatible BaseAgent adapter."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        logs_dir: Path | None = None,
+        model_name: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        if HarborBaseAgent is not object:
+            super().__init__(logs_dir=logs_dir or Path("."), model_name=model_name, **kwargs)
         self.environment: Any | None = None
 
     @staticmethod

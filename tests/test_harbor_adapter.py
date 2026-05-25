@@ -100,6 +100,14 @@ def test_submitted_agent_importable_without_harbor():
     assert agent.import_path() == "submitted_agent:Agent"
 
 
+def test_submitted_agent_accepts_harbor_factory_kwargs(tmp_path):
+    import submitted_agent
+
+    agent = submitted_agent.Agent(logs_dir=tmp_path, model_name="deepseek-v4-pro", extra="ignored")
+
+    assert agent.import_path() == "submitted_agent:Agent"
+
+
 @pytest.mark.asyncio
 async def test_run_requires_deepseek_api_key(monkeypatch, tmp_path):
     import submitted_agent
