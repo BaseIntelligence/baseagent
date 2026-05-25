@@ -30,9 +30,7 @@ class OutputMode(str, Enum):
 class Provider(str, Enum):
     """LLM provider."""
 
-    CHUTES = "chutes"
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
+    DEEPSEEK = "deepseek"
 
 
 class ReasoningConfig(BaseModel):
@@ -99,8 +97,8 @@ class AgentConfig(BaseModel):
     """Main configuration for the SuperAgent."""
 
     # Model settings
-    model: str = Field(default="anthropic/claude-opus-4-20250514", description="Model to use")
-    provider: Provider = Field(default=Provider.CHUTES, description="LLM provider")
+    model: str = Field(default="deepseek-v4-pro", description="Model to use")
+    provider: Provider = Field(default=Provider.DEEPSEEK, description="LLM provider")
     max_iterations: int = Field(default=50, description="Maximum iterations")
     timeout: int = Field(default=120, description="Timeout per LLM call in seconds")
     temperature: float = Field(default=0.7, description="Generation temperature")
@@ -122,9 +120,7 @@ class AgentConfig(BaseModel):
     def get_api_key(self) -> str:
         """Get the API key for the configured provider."""
         env_vars = {
-            Provider.CHUTES: ["CHUTES_API_KEY"],
-            Provider.OPENAI: ["OPENAI_API_KEY"],
-            Provider.ANTHROPIC: ["ANTHROPIC_API_KEY"],
+            Provider.DEEPSEEK: ["DEEPSEEK_API_KEY"],
         }
 
         for var in env_vars.get(self.provider, []):
@@ -140,8 +136,6 @@ class AgentConfig(BaseModel):
     def get_base_url(self) -> str:
         """Get the base URL for the configured provider."""
         urls = {
-            Provider.CHUTES: "https://api.chutes.ai/v1",
-            Provider.OPENAI: "https://api.openai.com/v1",
-            Provider.ANTHROPIC: "https://api.anthropic.com/v1",
+            Provider.DEEPSEEK: os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
         }
         return urls[self.provider]

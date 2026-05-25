@@ -1,4 +1,4 @@
-"""LLM Client using httpx for Chutes API (OpenAI-compatible)."""
+"""LLM Client using httpx for DeepSeek API (OpenAI-compatible)."""
 
 from __future__ import annotations
 
@@ -71,11 +71,11 @@ class LLMResponse:
 
 
 class LLMClient:
-    """LLM Client using httpx for Chutes API (OpenAI-compatible format)."""
+    """LLM Client using httpx for DeepSeek API (OpenAI-compatible format)."""
 
-    # Default Chutes API configuration
-    DEFAULT_BASE_URL = "https://llm.chutes.ai/v1"
-    DEFAULT_API_KEY_ENV = "CHUTES_API_KEY"
+    # Default DeepSeek API configuration
+    DEFAULT_BASE_URL = "https://api.deepseek.com"
+    DEFAULT_API_KEY_ENV = "DEEPSEEK_API_KEY"
 
     def __init__(
         self,
@@ -91,20 +91,14 @@ class LLMClient:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.cost_limit = cost_limit or float(os.environ.get("LLM_COST_LIMIT", "10.0"))
-        self.base_url = base_url or os.environ.get("CHUTES_BASE_URL", self.DEFAULT_BASE_URL)
+        self.base_url = base_url or os.environ.get("DEEPSEEK_BASE_URL", self.DEFAULT_BASE_URL)
         self.timeout = timeout
 
-        # Get API key (try CHUTES_API_KEY first, then fall back to OPENROUTER_API_KEY)
         self._api_key = api_key or os.environ.get(self.DEFAULT_API_KEY_ENV)
         if not self._api_key:
-            openrouter_key = os.environ.get("OPENROUTER_API_KEY")
-            if openrouter_key:
-                self._api_key = openrouter_key
-                self.base_url = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-            else:
-                raise ValueError(
-                    f"API key required. Set {self.DEFAULT_API_KEY_ENV} or OPENROUTER_API_KEY environment variable or pass api_key parameter."
-                )
+            raise ValueError(
+                f"API key required. Set {self.DEFAULT_API_KEY_ENV} environment variable or pass api_key parameter."
+            )
 
         self._total_cost = 0.0
         self._total_tokens = 0
@@ -158,7 +152,7 @@ class LLMClient:
         extra_body: Optional[Dict[str, Any]] = None,
         model: Optional[str] = None,
     ) -> LLMResponse:
-        """Send a chat request to Chutes API."""
+        """Send a chat request to DeepSeek API."""
         # Check cost limit
         if self._total_cost >= self.cost_limit:
             raise CostLimitExceeded(
