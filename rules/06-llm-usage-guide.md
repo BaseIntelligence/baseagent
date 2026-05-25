@@ -1,6 +1,6 @@
-# 06 - LLM Usage Guide (SDK 3.0 - Chutes API)
+# 06 - LLM Usage Guide (SDK 3.0 - DeepSeek API)
 
-This guide covers using LLMs with **Chutes API** via httpx (no more term_sdk).
+This guide covers using LLMs with **DeepSeek API** via httpx (no more term_sdk). Challenge runs use `DEEPSEEK_API_KEY`, `https://api.deepseek.com`, provider `deepseek`, and model `deepseek-v4-pro`.
 
 ---
 
@@ -13,7 +13,7 @@ from src.llm.client import LLMClient, LLMError, CostLimitExceeded
 
 # Create the LLM client
 llm = LLMClient(
-    model="moonshotai/Kimi-K2.5-TEE",
+    model="deepseek-v4-pro",
     temperature=0.0,  # 0 = deterministic
     max_tokens=16384,
     cost_limit=10.0   # Cost limit in $
@@ -502,36 +502,30 @@ Community fine-tuned models are **forbidden** because they may:
 
 ```python
 def setup(self):
-    # Any official foundation model works
-    # Examples: claude-3.5-sonnet, gpt-4o, deepseek-v3, llama-3, etc.
+    # Challenge runs use the configured DeepSeek model
     self.llm = LLMClient(
-        model="moonshotai/Kimi-K2.5-TEE",  # or any supported model
+        model="deepseek-v4-pro",
         temperature=0.3
     )
 ```
 
-### Multi-Model Strategy
+### Single Model Strategy
 
-You can use different models for different purposes:
+Challenge runs should keep all LLM calls on the configured DeepSeek model:
 
 ```python
 def setup(self):
-    # Strong model for complex reasoning
-    self.reasoning_model = "anthropic/claude-3.5-sonnet"
-    # Fast model for simple operations
-    self.fast_model = "anthropic/claude-3-haiku"
+    self.model = "deepseek-v4-pro"
 
 def run(self, ctx: Any):
-    # Use strong model for planning
     plan = self.llm.ask(
         f"Task: {ctx.instruction}\nCreate a plan.",
-        model=self.reasoning_model
+        model=self.model
     )
     
-    # Use fast model for parsing
     parsed = self.llm.ask(
         f"Extract commands from:\n{plan.text}",
-        model=self.fast_model
+        model=self.model
     )
 ```
 
@@ -550,7 +544,7 @@ from src.llm.client import LLMClient
 
 # Caching is handled at the message level
 llm = LLMClient(
-    model="moonshotai/Kimi-K2.5-TEE",
+    model="deepseek-v4-pro",
 )
 
 # The system manages caching automatically through message preparation
