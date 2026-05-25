@@ -8,6 +8,11 @@ This file provides instructions for AI agents working on this codebase. It also 
 # Install dependencies
 pip install -e .
 
+# Configure DeepSeek for challenge runs
+export DEEPSEEK_API_KEY="your-token"
+export DEEPSEEK_BASE_URL="https://api.deepseek.com"
+export LLM_MODEL="deepseek-v4-pro"
+
 # Run with Term SDK
 python agent.py
 
@@ -15,6 +20,10 @@ python agent.py
 git clone https://github.com/PlatformNetwork/term-challenge.git
 pip install -e term-challenge/sdk/python/
 ```
+
+## Challenge API Policy
+
+Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
 
 ## Project Structure
 
@@ -169,7 +178,7 @@ def apply_caching(messages):
     return messages
 ```
 
-**Why it works**: Anthropic caches prefixes. Caching the last messages extends the cached prefix to include the entire conversation history.
+**Why it works**: provider prompt caches use matching prefixes. Caching the last messages extends the cached prefix to include the entire conversation history.
 
 ## 2. Self-Verification
 

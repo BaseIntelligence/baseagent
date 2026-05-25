@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">BaseAgent</h1>
   <p align="center"><strong>High-performance autonomous agent for <a href="https://term.challenge">Term Challenge</a></strong></p>
-  <p align="center">Fully autonomous with <strong>Chutes API</strong> - powered by <strong>moonshotai/Kimi-K2.5-TEE</strong> (1T params, 32B activated, 256K context)</p>
+  <p align="center">Fully autonomous with <strong>DeepSeek API</strong>, powered by <strong>deepseek-v4-pro</strong></p>
 </p>
 
 ---
@@ -11,7 +11,7 @@
 | Project | Description |
 |---------|-------------|
 | [Basilica](https://github.com/one-covenant/basilica) | Secure TEE Container Runtime |
-| [Chutes API](https://github.com/chutesai/chutes) | Chutes AI - LLM API Provider |
+| [DeepSeek API](https://api.deepseek.com) | DeepSeek LLM API |
 | [Platform Network](https://github.com/PlatformNetwork/platform) | Platform Network Core |
 | [How to Mine on subnet 100 with this Agent](https://www.platform.network/docs) | Mining Documentation |
 ## Architecture at a Glance
@@ -38,9 +38,9 @@ graph TB
     end
     
     subgraph LLM["LLM Layer (External)"]
-        subgraph Chutes["Chutes API"]
-            Client["Chutes API Client"]
-            Model["moonshotai/Kimi-K2.5-TEE"]
+        subgraph DeepSeek["DeepSeek API"]
+            Client["DeepSeek API Client"]
+            Model["deepseek-v4-pro"]
         end
         
         subgraph BasilicaLLM["Basilica (Soon)"]
@@ -72,7 +72,11 @@ graph TB
 - **Prompt Caching** - 90%+ cache hit rate for significant cost reduction
 - **Context Management** - Intelligent pruning and compaction for long tasks
 - **Self-Verification** - Automatic validation before task completion
-- **Kimi K2.5-TEE** - 1T parameters, 256K context window, thinking mode enabled
+- **DeepSeek API** - challenge runs use `deepseek-v4-pro` through the DeepSeek API
+
+## Challenge API Policy
+
+Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
 
 ---
 
@@ -89,7 +93,9 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-export CHUTES_API_KEY="your-token"
+export DEEPSEEK_API_KEY="your-token"
+export DEEPSEEK_BASE_URL="https://api.deepseek.com"
+export LLM_MODEL="deepseek-v4-pro"
 python agent.py --instruction "Your task here..."
 ```
 
@@ -105,7 +111,7 @@ baseagent/
 │   │   ├── loop.py          # Main agent loop
 │   │   └── compaction.py    # Context management
 │   ├── llm/
-│   │   └── client.py        # LLM client (Chutes API)
+│   │   └── client.py        # LLM client (DeepSeek API)
 │   ├── config/
 │   │   └── defaults.py      # Configuration
 │   ├── tools/               # Tool implementations
@@ -132,7 +138,7 @@ flowchart TB
     
     LoopStart -->|Yes| ManageCtx[Manage Context<br/>Prune/Compact if needed]
     ManageCtx --> ApplyCache[Apply Prompt Caching]
-    ApplyCache --> CallLLM[Call Kimi K2.5-TEE]
+    ApplyCache --> CallLLM[Call deepseek-v4-pro]
     
     CallLLM --> HasCalls{Has Tool Calls?}
     
@@ -229,34 +235,34 @@ sequenceDiagram
 
 ---
 
-## LLM Client (Chutes API)
+## LLM Client (DeepSeek API)
 
 ```python
 from src.llm.client import LLMClient
 
 llm = LLMClient(
-    model="moonshotai/Kimi-K2.5-TEE",
-    temperature=1.0,  # Recommended for thinking mode
+    model="deepseek-v4-pro",
+    temperature=1.0,
     max_tokens=16384,
 )
 
 response = llm.chat(messages, tools=tool_specs)
 ```
 
-### Thinking Mode
+### Reasoning Responses
 
-Kimi K2.5-TEE supports thinking mode with `<think>...</think>` tags:
+DeepSeek handles complex reasoning through `deepseek-v4-pro`:
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Model as Kimi K2.5-TEE
+    participant Model as deepseek-v4-pro
     participant Response
 
     User->>Model: Complex task instruction
     
     rect rgb(230, 240, 255)
-        Note over Model: Thinking Mode Active
+        Note over Model: Reasoning Active
         Model->>Model: Analyze problem
         Model->>Model: Consider approaches
         Model->>Model: Evaluate options
@@ -311,8 +317,8 @@ flowchart LR
 ```python
 # src/config/defaults.py
 CONFIG = {
-    "model": "moonshotai/Kimi-K2.5-TEE",
-    "provider": "chutes",
+    "model": "deepseek-v4-pro",
+    "provider": "deepseek",
     "max_tokens": 16384,
     "temperature": 1.0,
     "max_iterations": 200,
@@ -324,8 +330,10 @@ CONFIG = {
 
 | Variable | Description |
 |----------|-------------|
-| `CHUTES_API_KEY` | Chutes API key |
-| `LLM_MODEL` | Model override (default: `moonshotai/Kimi-K2.5-TEE`) |
+| `DEEPSEEK_API_KEY` | DeepSeek API key |
+| `DEEPSEEK_BASE_URL` | DeepSeek API base URL, `https://api.deepseek.com` |
+| `LLM_MODEL` | Model override, default `deepseek-v4-pro` |
+| `LLM_COST_LIMIT` | Maximum cost in USD before aborting |
 
 ---
 
@@ -335,7 +343,7 @@ See [docs/](docs/) for comprehensive documentation:
 
 - [Overview](docs/overview.md) - Design principles
 - [Architecture](docs/architecture.md) - Technical deep-dive
-- [Chutes Integration](docs/chutes-integration.md) - API setup
+- [DeepSeek Integration](docs/chutes-integration.md) - API setup
 - [Tools Reference](docs/tools.md) - All tools documented
 - [Context Management](docs/context-management.md) - Token optimization
 - [Best Practices](docs/best-practices.md) - Performance tips
