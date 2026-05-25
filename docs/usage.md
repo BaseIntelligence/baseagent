@@ -53,14 +53,10 @@ python3 agent.py --instruction "Find the bug causing the TypeError in the test o
 Configure the agent's behavior with environment variables:
 
 ```bash
-# LLM Provider (Chutes)
-export CHUTES_API_TOKEN="your-token"
-export LLM_PROVIDER="chutes"
-export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
-
-# LLM Provider (OpenRouter)
-export OPENROUTER_API_KEY="sk-or-v1-..."
-export LLM_MODEL="openrouter/anthropic/claude-sonnet-4-20250514"
+# DeepSeek API for challenge runs
+export DEEPSEEK_API_KEY="your-token"
+export DEEPSEEK_BASE_URL="https://api.deepseek.com"
+export LLM_MODEL="deepseek-v4-pro"
 
 # Cost management
 export LLM_COST_LIMIT="10.0"
@@ -68,6 +64,8 @@ export LLM_COST_LIMIT="10.0"
 # Run with inline variables
 LLM_COST_LIMIT="5.0" python3 agent.py --instruction "..."
 ```
+
+Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
 
 ---
 
@@ -125,7 +123,7 @@ Agent logs go to stderr:
 [14:30:15] [superagent] ============================================================
 [14:30:15] [superagent] SuperAgent Starting (SDK 3.0 - litellm)
 [14:30:15] [superagent] ============================================================
-[14:30:15] [superagent] Model: openrouter/anthropic/claude-sonnet-4-20250514
+[14:30:15] [superagent] Model: deepseek-v4-pro
 [14:30:15] [superagent] Instruction: Create hello.txt with 'Hello World'...
 [14:30:15] [loop] Getting initial state...
 [14:30:16] [loop] Iteration 1/200

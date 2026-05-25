@@ -6,22 +6,22 @@
 
 Before starting, ensure you have:
 - Python 3.9+ installed
-- An LLM API key (Chutes, OpenRouter, or Anthropic)
+- A DeepSeek API key
 - BaseAgent installed (see [Installation](./installation.md))
 
 ---
 
 ## Step 1: Set Up Your API Key
 
-Choose your provider and set the environment variable:
+Set the DeepSeek environment variables:
 
 ```bash
-# For Chutes AI (recommended)
-export CHUTES_API_TOKEN="your-token-from-chutes.ai"
-
-# OR for OpenRouter
-export OPENROUTER_API_KEY="sk-or-v1-..."
+export DEEPSEEK_API_KEY="your-token"
+export DEEPSEEK_BASE_URL="https://api.deepseek.com"
+export LLM_MODEL="deepseek-v4-pro"
 ```
+
+Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
 
 ---
 
@@ -124,7 +124,7 @@ sequenceDiagram
 python3 agent.py --instruction "Your task description"
 
 # With environment variables inline
-CHUTES_API_TOKEN="..." python3 agent.py --instruction "..."
+DEEPSEEK_API_KEY="..." DEEPSEEK_BASE_URL="https://api.deepseek.com" LLM_MODEL="deepseek-v4-pro" python3 agent.py --instruction "..."
 
 # Redirect output to file
 python3 agent.py --instruction "..." > output.jsonl 2>&1

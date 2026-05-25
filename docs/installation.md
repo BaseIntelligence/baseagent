@@ -77,43 +77,18 @@ These are automatically installed via pip.
 
 ## Environment Setup
 
-### 1. Choose Your LLM Provider
+### 1. Configure DeepSeek API
 
-BaseAgent supports multiple LLM providers. Choose one:
-
-#### Option A: Chutes AI (Recommended)
+BaseAgent challenge runs use DeepSeek API only for cost reasons.
 
 ```bash
-# Set your Chutes API token
-export CHUTES_API_TOKEN="your-token-from-chutes.ai"
-
-# Configure provider
-export LLM_PROVIDER="chutes"
-export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
+# Set your DeepSeek API key
+export DEEPSEEK_API_KEY="your-token"
+export DEEPSEEK_BASE_URL="https://api.deepseek.com"
+export LLM_MODEL="deepseek-v4-pro"
 ```
 
-Get your token at [chutes.ai](https://chutes.ai)
-
-#### Option B: OpenRouter
-
-```bash
-# Set your OpenRouter API key
-export OPENROUTER_API_KEY="sk-or-v1-..."
-
-# Model is auto-configured for OpenRouter
-```
-
-Get your key at [openrouter.ai](https://openrouter.ai)
-
-#### Option C: Direct Provider APIs
-
-```bash
-# For Anthropic
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# For OpenAI
-export OPENAI_API_KEY="sk-..."
-```
+Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
 
 ### 2. Create a Configuration File (Optional)
 
@@ -121,9 +96,9 @@ Create `.env` in the project root:
 
 ```bash
 # .env file
-CHUTES_API_TOKEN=your-token-here
-LLM_PROVIDER=chutes
-LLM_MODEL=moonshotai/Kimi-K2.5-TEE
+DEEPSEEK_API_KEY=your-token-here
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+LLM_MODEL=deepseek-v4-pro
 LLM_COST_LIMIT=10.0
 ```
 
@@ -216,11 +191,10 @@ python3 agent.py --instruction "..."
 
 ```bash
 # Check if variables are set
-echo $CHUTES_API_TOKEN
-echo $OPENROUTER_API_KEY
+echo $DEEPSEEK_API_KEY
 
 # Re-export if needed
-export CHUTES_API_TOKEN="your-token"
+export DEEPSEEK_API_KEY="your-token"
 ```
 
 ### Issue: `rg` (ripgrep) Not Found
@@ -246,4 +220,4 @@ cargo install ripgrep
 
 - [Quick Start](./quickstart.md) - Run your first task
 - [Configuration](./configuration.md) - Customize settings
-- [Chutes Integration](./chutes-integration.md) - Set up Chutes API
+- [DeepSeek Integration](./chutes-integration.md) - Set up DeepSeek API
