@@ -16,8 +16,9 @@ The main configuration is stored in the `CONFIG` dictionary:
 # src/config/defaults.py
 CONFIG = {
     # Model Settings
-    "model": "openrouter/anthropic/claude-sonnet-4-20250514",
-    "provider": "openrouter",
+    "model": "deepseek-v4-pro",
+    "provider": "deepseek",
+    "base_url": "https://api.deepseek.com",
     "temperature": 0.0,
     "max_tokens": 16384,
     "reasoning_effort": "none",
@@ -57,31 +58,26 @@ CONFIG = {
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_MODEL` | `openrouter/anthropic/claude-sonnet-4-20250514` | Model identifier |
-| `LLM_PROVIDER` | `openrouter` | Provider name (`chutes`, `openrouter`, etc.) |
+| `DEEPSEEK_API_KEY` | none | API key for DeepSeek |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | DeepSeek API base URL |
+| `LLM_MODEL` | `deepseek-v4-pro` | Configured DeepSeek model identifier |
 | `LLM_COST_LIMIT` | `10.0` | Maximum cost in USD before aborting |
 
 ### API Keys
 
 | Variable | Provider | Description |
 |----------|----------|-------------|
-| `CHUTES_API_TOKEN` | Chutes AI | Token from chutes.ai |
-| `OPENROUTER_API_KEY` | OpenRouter | API key from openrouter.ai |
-| `ANTHROPIC_API_KEY` | Anthropic | Direct Anthropic API key |
-| `OPENAI_API_KEY` | OpenAI | OpenAI API key |
+| `DEEPSEEK_API_KEY` | DeepSeek | API key for DeepSeek |
 
 ### Example Setup
 
 ```bash
-# For Chutes AI
-export CHUTES_API_TOKEN="your-token"
-export LLM_PROVIDER="chutes"
-export LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
-
-# For OpenRouter
-export OPENROUTER_API_KEY="sk-or-v1-..."
-export LLM_MODEL="openrouter/anthropic/claude-sonnet-4-20250514"
+export DEEPSEEK_API_KEY="your-token"
+export DEEPSEEK_BASE_URL="https://api.deepseek.com"
+export LLM_MODEL="deepseek-v4-pro"
 ```
+
+Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
 
 ---
 
@@ -93,7 +89,7 @@ export LLM_MODEL="openrouter/anthropic/claude-sonnet-4-20250514"
 graph LR
     subgraph Model["Model Configuration"]
         M1["model<br/>Model identifier"]
-        M2["provider<br/>API provider"]
+        M2["provider<br/>deepseek"]
         M3["temperature<br/>Response randomness"]
         M4["max_tokens<br/>Max output tokens"]
         M5["reasoning_effort<br/>Reasoning depth"]
@@ -102,8 +98,9 @@ graph LR
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `model` | `str` | `openrouter/anthropic/claude-sonnet-4-20250514` | Full model identifier with provider prefix |
-| `provider` | `str` | `openrouter` | LLM provider name |
+| `model` | `str` | `deepseek-v4-pro` | DeepSeek model identifier |
+| `provider` | `str` | `deepseek` | LLM provider name |
+| `base_url` | `str` | `https://api.deepseek.com` | DeepSeek API base URL |
 | `temperature` | `float` | `0.0` | Response randomness (0 = deterministic) |
 | `max_tokens` | `int` | `16384` | Maximum tokens in LLM response |
 | `reasoning_effort` | `str` | `none` | Reasoning depth: `none`, `minimal`, `low`, `medium`, `high`, `xhigh` |
@@ -155,11 +152,9 @@ graph TB
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `cache_enabled` | `bool` | `True` | Enable Anthropic prompt caching |
+| `cache_enabled` | `bool` | `True` | Enable supported prompt caching behavior |
 
-> **Note**: Prompt caching requires minimum token thresholds per breakpoint:
-> - Claude Opus 4.5 on Bedrock: 4096 tokens
-> - Claude Sonnet/other: 1024 tokens
+> **Note**: Prompt caching behavior depends on the configured DeepSeek API behavior and client support.
 
 ### Execution Flags
 
@@ -174,41 +169,13 @@ graph TB
 
 ---
 
-## Provider-Specific Configuration
-
-### Chutes AI
+## DeepSeek Configuration
 
 ```python
 # Environment
-CHUTES_API_TOKEN="your-token"
-LLM_PROVIDER="chutes"
-LLM_MODEL="moonshotai/Kimi-K2.5-TEE"
-
-# Model features
-# - 1T parameters, 32B activated
-# - 256K context window
-# - Thinking mode enabled by default
-# - Temperature: 1.0 (thinking), 0.6 (instant)
-```
-
-### OpenRouter
-
-```python
-# Environment
-OPENROUTER_API_KEY="sk-or-v1-..."
-LLM_MODEL="openrouter/anthropic/claude-sonnet-4-20250514"
-
-# Requires openrouter/ prefix for litellm
-```
-
-### Direct Anthropic
-
-```python
-# Environment
-ANTHROPIC_API_KEY="sk-ant-..."
-LLM_MODEL="claude-3-5-sonnet-20241022"
-
-# No prefix needed for direct API
+DEEPSEEK_API_KEY="your-token"
+DEEPSEEK_BASE_URL="https://api.deepseek.com"
+LLM_MODEL="deepseek-v4-pro"
 ```
 
 ---
@@ -299,6 +266,6 @@ export LLM_COST_LIMIT="1.0"
 
 ## Next Steps
 
-- [Chutes Integration](./chutes-integration.md) - Configure Chutes API
+- [DeepSeek Integration](./chutes-integration.md) - Configure DeepSeek API
 - [Context Management](./context-management.md) - Understand memory management
 - [Best Practices](./best-practices.md) - Optimization tips
