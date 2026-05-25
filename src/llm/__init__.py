@@ -1,4 +1,4 @@
-"""LLM module using httpx for Chutes API."""
+"""LLM module using httpx for DeepSeek API."""
 
 from .client import CostLimitExceeded, FunctionCall, LiteLLMClient, LLMClient, LLMError, LLMResponse
 

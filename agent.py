@@ -3,7 +3,7 @@
 SuperAgent for Term Challenge - Entry Point (SDK 3.0 Compatible).
 
 This agent accepts --instruction from the validator and runs autonomously.
-Uses Chutes API for LLM calls instead of term_sdk.
+Uses DeepSeek API for LLM calls instead of term_sdk.
 
 Installation:
     pip install .                    # via pyproject.toml
@@ -138,7 +138,7 @@ def main():
     args = parser.parse_args()
 
     _log("=" * 60)
-    _log("SuperAgent Starting (SDK 3.0 - Chutes API)")
+    _log("SuperAgent Starting (SDK 3.0 - DeepSeek API)")
     _log("=" * 60)
     _log(f"Model: {CONFIG['model']}")
     _log(f"Reasoning effort: {CONFIG.get('reasoning_effort', 'default')}")
