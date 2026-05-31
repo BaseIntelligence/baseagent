@@ -169,10 +169,36 @@ async def test_context_env_hydrates_deepseek_only(monkeypatch, tmp_path):
         "cost_limit": 1.25,
         "base_url": "https://deepseek.example",
         "api_key": "context-key",
+        "mock": False,
     }
     assert captured["ctx_cwd"] == "/app"
     assert captured["tools_type"] is HarborToolRegistry
     assert captured["closed"] is True
+
+
+@pytest.mark.asyncio
+async def test_run_mock_llm_executes_without_api_key(monkeypatch, tmp_path):
+    import agent
+
+    for key in (
+        "DEEPSEEK_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "OPENROUTER_API_KEY",
+        "CHUTES_API_KEY",
+        "BASEAGENT_MOCK_LLM",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    environment = FakeHarborEnvironment(tmp_path)
+    result = await agent.Agent().run(
+        "do a trivial task",
+        environment,
+        {"env": {"BASEAGENT_MOCK_LLM": "1"}},
+    )
+
+    assert result == "Task completed"
+    assert environment.calls, "mock run should still execute real environment commands"
 
 
 @pytest.mark.asyncio

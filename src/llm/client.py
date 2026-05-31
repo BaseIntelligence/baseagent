@@ -10,6 +10,10 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 
+def _truthy(value: Optional[str]) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "on"} if value else False
+
+
 class CostLimitExceeded(Exception):
     """Raised when cost limit is exceeded."""
 
@@ -86,6 +90,7 @@ class LLMClient:
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
         timeout: float = 120.0,
+        mock: Optional[bool] = None,
     ):
         self.model = model
         self.temperature = temperature
@@ -94,18 +99,26 @@ class LLMClient:
         self.base_url = base_url or os.environ.get("DEEPSEEK_BASE_URL", self.DEFAULT_BASE_URL)
         self.timeout = timeout
 
-        self._api_key = api_key or os.environ.get(self.DEFAULT_API_KEY_ENV)
-        if not self._api_key:
-            raise ValueError(
-                f"API key required. Set {self.DEFAULT_API_KEY_ENV} environment variable or pass api_key parameter."
-            )
-
         self._total_cost = 0.0
         self._total_tokens = 0
         self._request_count = 0
         self._input_tokens = 0
         self._output_tokens = 0
         self._cached_tokens = 0
+
+        # Mock mode intentionally bypasses the API-key requirement so the agent
+        # can run end-to-end without any LLM provider credentials (pipeline checks).
+        self._mock = _truthy(os.environ.get("BASEAGENT_MOCK_LLM")) if mock is None else mock
+        if self._mock:
+            self._api_key = api_key or "mock"
+            self._client = None
+            return
+
+        self._api_key = api_key or os.environ.get(self.DEFAULT_API_KEY_ENV)
+        if not self._api_key:
+            raise ValueError(
+                f"API key required. Set {self.DEFAULT_API_KEY_ENV} environment variable or pass api_key parameter."
+            )
 
         # Create httpx client with timeout
         self._client = httpx.Client(
@@ -115,6 +128,20 @@ class LLMClient:
                 "Content-Type": "application/json",
             },
             timeout=httpx.Timeout(timeout, connect=30.0),
+        )
+
+    def _mock_chat(self) -> LLMResponse:
+        # Emits no function calls so the agent loop runs one self-verification
+        # turn and completes; real environment commands still execute.
+        self._request_count += 1
+        self._input_tokens += 1
+        self._output_tokens += 1
+        self._total_tokens += 2
+        return LLMResponse(
+            text="[mock-llm] Task acknowledged; no further actions required.",
+            tokens={"input": 1, "output": 1, "cached": 0},
+            model=self.model,
+            finish_reason="stop",
         )
 
     def _supports_temperature(self, model: str) -> bool:
@@ -153,6 +180,9 @@ class LLMClient:
         model: Optional[str] = None,
     ) -> LLMResponse:
         """Send a chat request to DeepSeek API."""
+        if self._mock:
+            return self._mock_chat()
+
         # Check cost limit
         if self._total_cost >= self.cost_limit:
             raise CostLimitExceeded(
@@ -311,7 +341,8 @@ class LLMClient:
 
     def close(self):
         """Close the HTTP client."""
-        self._client.close()
+        if self._client is not None:
+            self._client.close()
 
     def __enter__(self):
         return self

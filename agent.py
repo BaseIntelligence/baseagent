@@ -52,7 +52,7 @@ ensure_dependencies()
 
 from src.config.defaults import CONFIG, get_config  # noqa: E402
 from src.core.loop import run_agent_loop  # noqa: E402
-from src.llm.client import CostLimitExceeded, LLMClient  # noqa: E402
+from src.llm.client import CostLimitExceeded, LLMClient, _truthy  # noqa: E402
 from src.output.jsonl import ErrorEvent, emit  # noqa: E402
 from src.tools.harbor_registry import (  # noqa: E402
     DEFAULT_HARBOR_CWD,
@@ -102,7 +102,10 @@ class Agent(HarborBaseAgent):
 
         context_env = _extract_context_env(context)
         api_key = os.environ.get("DEEPSEEK_API_KEY") or context_env.get("DEEPSEEK_API_KEY")
-        if not api_key:
+        mock = _truthy(
+            os.environ.get("BASEAGENT_MOCK_LLM") or context_env.get("BASEAGENT_MOCK_LLM")
+        )
+        if not api_key and not mock:
             raise ValueError("DEEPSEEK_API_KEY is required for BaseAgent Harbor runs")
 
         config = get_config()
@@ -119,6 +122,7 @@ class Agent(HarborBaseAgent):
             cost_limit=cost_limit,
             base_url=base_url,
             api_key=api_key,
+            mock=mock,
         )
 
         loop = asyncio.get_running_loop()
