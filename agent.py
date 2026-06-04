@@ -92,6 +92,36 @@ class Agent(HarborBaseAgent):
     def import_path() -> str:
         return "agent:Agent"
 
+    def to_agent_info(self) -> Any:
+        """Return Harbor's AgentInfo describing this agent.
+
+        Defined explicitly instead of relying on the Harbor ``BaseAgent``
+        implementation so the agent stays compatible across Harbor versions
+        (Harbor's runner image is pulled as ``:latest``) and keeps working even
+        when the Harbor base class is unavailable and ``HarborBaseAgent`` falls
+        back to ``object``. Mirrors Harbor's own ``to_agent_info`` contract.
+        """
+        name = self.name()
+        version = self.version() or "unknown"
+        try:
+            from harbor.models.trial.result import AgentInfo
+        except Exception:
+            return {"name": name, "version": version, "model_info": None}
+
+        model_info = None
+        model_name = getattr(self, "_parsed_model_name", None)
+        if model_name:
+            try:
+                from harbor.models.trial.result import ModelInfo
+
+                model_info = ModelInfo(
+                    name=model_name,
+                    provider=getattr(self, "_parsed_model_provider", None),
+                )
+            except Exception:
+                model_info = None
+        return AgentInfo(name=name, version=version, model_info=model_info)
+
     async def setup(self, environment: Any) -> None:
         self.environment = environment
 
