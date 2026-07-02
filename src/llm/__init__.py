@@ -1,4 +1,4 @@
-"""LLM module using httpx for DeepSeek API."""
+"""LLM module using httpx for the platform LLM gateway (OpenAI-compatible)."""
 
 from .client import CostLimitExceeded, FunctionCall, LLMClient, LLMError, LLMResponse
 

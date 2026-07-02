@@ -14,7 +14,6 @@ All settings are hardcoded - no CLI arguments needed.
 
 from __future__ import annotations
 
-import os
 from typing import Any, Dict
 
 # Main configuration - simulates Codex exec benchmark mode
@@ -22,10 +21,11 @@ CONFIG: Dict[str, Any] = {
     # ==========================================================================
     # Model Settings (simulates --model gpt-5.2 -c model_reasoning_effort=xhigh)
     # ==========================================================================
-    # Model to use via DeepSeek API (OpenAI-compatible)
-    "model": os.environ.get("LLM_MODEL", "deepseek-v4-pro"),
+    # Neutral placeholder only (logging/AgentInfo); the LLM gateway injects the
+    # real provider + model, so the agent never pins a specific model.
+    "model": "gateway-default",
     # Provider
-    "provider": "deepseek",
+    "provider": "gateway",
     "reasoning_effort": "none",
     # Token limits
     "max_tokens": 16384,

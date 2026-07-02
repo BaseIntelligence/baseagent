@@ -4,7 +4,7 @@
 
 BaseAgent is a high-performance autonomous agent designed for the [Term Challenge](https://term.challenge). It leverages LLM-driven decision making with advanced context management and cost optimization techniques.
 
-Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
+The agent calls the platform LLM gateway at `BASE_LLM_GATEWAY_URL` using `BASE_GATEWAY_TOKEN`; the platform chooses the provider and model. Miners MUST NOT embed provider API keys, base URLs, or model names, and MUST NOT call any LLM provider directly. Set `BASEAGENT_MOCK_LLM=1` to run without a gateway URL or token (mock mode).
 
 ---
 
@@ -25,9 +25,6 @@ Challenge API policy: this agent is configured to use only the DeepSeek API for 
 - [Context Management](./context-management.md) - Token management and compaction
 - [Best Practices](./best-practices.md) - Optimal usage patterns
 
-### LLM Provider
-- [DeepSeek API Integration](./chutes-integration.md) - Using DeepSeek as the challenge API
-
 ---
 
 ## Quick Navigation
@@ -43,7 +40,6 @@ Challenge API policy: this agent is configured to use only the DeepSeek API for 
 | [Tools](./tools.md) | Complete tools reference |
 | [Context Management](./context-management.md) | Memory and token optimization |
 | [Best Practices](./best-practices.md) | Tips for optimal performance |
-| [DeepSeek Integration](./chutes-integration.md) | DeepSeek API setup and usage |
 
 ---
 
@@ -62,8 +58,8 @@ graph TB
     end
     
     subgraph LLM["LLM Layer"]
-        Client["DeepSeek HTTP Client"]
-        Provider["DeepSeek API"]
+        Client["LLM Gateway HTTP Client"]
+        Provider["LLM Gateway"]
     end
     
     subgraph Tools["Tool System"]
@@ -93,7 +89,7 @@ graph TB
 - **Prompt Caching** - 90%+ cache hit rate for significant cost reduction
 - **Context Management** - Intelligent pruning and compaction for long tasks
 - **Self-Verification** - Automatic validation before task completion
-- **DeepSeek Only for Challenge Runs** - Uses `DEEPSEEK_API_KEY`, `https://api.deepseek.com`, provider `deepseek`, and `deepseek-v4-pro`
+- **LLM Gateway for Challenge Runs** - Calls the platform LLM gateway via `BASE_LLM_GATEWAY_URL` + `BASE_GATEWAY_TOKEN`; the platform picks provider + model
 
 ---
 
@@ -107,7 +103,7 @@ baseagent/
 │   │   ├── loop.py          # Main agent loop
 │   │   └── compaction.py    # Context management
 │   ├── llm/
-│   │   └── client.py        # LLM client (DeepSeek/httpx)
+│   │   └── client.py        # LLM client (LLM gateway, httpx)
 │   ├── config/
 │   │   └── defaults.py      # Configuration
 │   ├── tools/               # Tool implementations

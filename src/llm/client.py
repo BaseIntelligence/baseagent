@@ -1,4 +1,4 @@
-"""LLM Client using httpx for DeepSeek API (OpenAI-compatible)."""
+"""LLM Client using httpx for the platform LLM gateway (OpenAI-compatible)."""
 
 from __future__ import annotations
 
@@ -75,28 +75,35 @@ class LLMResponse:
 
 
 class LLMClient:
-    """LLM Client using httpx for DeepSeek API (OpenAI-compatible format)."""
+    """LLM Client using httpx for the platform LLM gateway (OpenAI-compatible).
 
-    # Default DeepSeek API configuration
-    DEFAULT_BASE_URL = "https://api.deepseek.com"
-    DEFAULT_API_KEY_ENV = "DEEPSEEK_API_KEY"
+    The client targets the master LLM gateway. It authenticates with the signed
+    gateway token (``BASE_GATEWAY_TOKEN``) and never carries a provider API key:
+    the gateway injects the provider and the model, so the client only sends a
+    neutral placeholder model that the gateway overwrites.
+    """
+
+    # A neutral placeholder; the gateway overwrites the model per its config.
+    DEFAULT_MODEL = "gateway-default"
+    BASE_URL_ENV = "BASE_LLM_GATEWAY_URL"
+    TOKEN_ENV = "BASE_GATEWAY_TOKEN"
 
     def __init__(
         self,
-        model: str,
+        model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: int = 16384,
         cost_limit: Optional[float] = None,
         base_url: Optional[str] = None,
-        api_key: Optional[str] = None,
+        token: Optional[str] = None,
         timeout: float = 120.0,
         mock: Optional[bool] = None,
     ):
-        self.model = model
+        self.model = model or self.DEFAULT_MODEL
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.cost_limit = cost_limit or float(os.environ.get("LLM_COST_LIMIT", "10.0"))
-        self.base_url = base_url or os.environ.get("DEEPSEEK_BASE_URL", self.DEFAULT_BASE_URL)
+        self.base_url = base_url or os.environ.get(self.BASE_URL_ENV)
         self.timeout = timeout
 
         self._total_cost = 0.0
@@ -106,27 +113,30 @@ class LLMClient:
         self._output_tokens = 0
         self._cached_tokens = 0
 
-        # Mock mode intentionally bypasses the API-key requirement so the agent
-        # can run end-to-end without any LLM provider credentials (pipeline checks).
+        self._token = token or os.environ.get(self.TOKEN_ENV)
+
+        # Mock mode runs the agent end-to-end without any gateway URL or token
+        # (pipeline checks). It needs neither credentials nor a network client.
         self._mock = _truthy(os.environ.get("BASEAGENT_MOCK_LLM")) if mock is None else mock
         if self._mock:
-            self._api_key = api_key or "mock"
             self._client = None
             return
 
-        self._api_key = api_key or os.environ.get(self.DEFAULT_API_KEY_ENV)
-        if not self._api_key:
+        if not self.base_url:
             raise ValueError(
-                f"API key required. Set {self.DEFAULT_API_KEY_ENV} environment variable or pass api_key parameter."
+                f"Gateway base URL required. Set {self.BASE_URL_ENV} environment "
+                "variable or pass base_url parameter."
             )
 
-        # Create httpx client with timeout
+        # The gateway token is the auth; a provider API key is never used. The
+        # header is only attached when a token is present so mock/dev flows work.
+        headers = {"Content-Type": "application/json"}
+        if self._token:
+            headers["Authorization"] = f"Bearer {self._token}"
+
         self._client = httpx.Client(
             base_url=self.base_url,
-            headers={
-                "Authorization": f"Bearer {self._api_key}",
-                "Content-Type": "application/json",
-            },
+            headers=headers,
             timeout=httpx.Timeout(timeout, connect=30.0),
         )
 
@@ -147,8 +157,8 @@ class LLMClient:
     def _supports_temperature(self, model: str) -> bool:
         """Check if model supports temperature parameter."""
         model_lower = model.lower()
-        # Reasoning models don't support temperature
-        if any(x in model_lower for x in ["o1", "o3", "deepseek-r1"]):
+        # Some reasoning models don't support temperature.
+        if any(x in model_lower for x in ["o1", "o3"]):
             return False
         return True
 
@@ -179,7 +189,7 @@ class LLMClient:
         extra_body: Optional[Dict[str, Any]] = None,
         model: Optional[str] = None,
     ) -> LLMResponse:
-        """Send a chat request to DeepSeek API."""
+        """Send a chat request to the LLM gateway (OpenAI-compatible)."""
         if self._mock:
             return self._mock_chat()
 

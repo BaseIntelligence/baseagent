@@ -1,6 +1,6 @@
-# 06 - LLM Usage Guide (SDK 3.0 - DeepSeek API)
+# 06 - LLM Usage Guide (SDK 3.0 - LLM Gateway)
 
-This guide covers using LLMs with **DeepSeek API** via httpx (no more term_sdk). Challenge runs use `DEEPSEEK_API_KEY`, `https://api.deepseek.com`, provider `deepseek`, and model `deepseek-v4-pro`.
+This guide covers using LLMs with the **platform LLM gateway** via httpx (no more term_sdk). Challenge runs call the gateway at `BASE_LLM_GATEWAY_URL` using `BASE_GATEWAY_TOKEN`; the platform chooses the provider and model. Miners MUST NOT embed provider API keys, base URLs, or model names, and MUST NOT call any LLM provider directly. Set `BASEAGENT_MOCK_LLM=1` to run without a gateway URL or token (mock mode).
 
 ---
 
@@ -11,14 +11,17 @@ This guide covers using LLMs with **DeepSeek API** via httpx (no more term_sdk).
 ```python
 from src.llm.client import LLMClient, LLMError, CostLimitExceeded
 
-# Create the LLM client
+# Create the LLM client (reads BASE_LLM_GATEWAY_URL / BASE_GATEWAY_TOKEN from env)
 llm = LLMClient(
-    model="deepseek-v4-pro",
+    base_url="https://<gateway-host>/llm/v1",
+    token="<gateway-token>",
     temperature=0.0,  # 0 = deterministic
     max_tokens=16384,
     cost_limit=10.0   # Cost limit in $
 )
 ```
+
+The client does not take a required model: its default placeholder model is `"gateway-default"` and the gateway injects the real provider and model.
 
 ### Conversations (MANDATORY: keep history)
 
@@ -502,30 +505,32 @@ Community fine-tuned models are **forbidden** because they may:
 
 ```python
 def setup(self):
-    # Challenge runs use the configured DeepSeek model
+    # Challenge runs go through the platform LLM gateway
     self.llm = LLMClient(
-        model="deepseek-v4-pro",
+        base_url="https://<gateway-host>/llm/v1",
+        token="<gateway-token>",
         temperature=0.3
     )
 ```
 
-### Single Model Strategy
+### Single Gateway Strategy
 
-Challenge runs should keep all LLM calls on the configured DeepSeek model:
+Challenge runs should keep all LLM calls on the platform LLM gateway, which injects the provider and model:
 
 ```python
 def setup(self):
-    self.model = "deepseek-v4-pro"
+    self.llm = LLMClient(
+        base_url="https://<gateway-host>/llm/v1",
+        token="<gateway-token>",
+    )
 
 def run(self, ctx: Any):
     plan = self.llm.ask(
         f"Task: {ctx.instruction}\nCreate a plan.",
-        model=self.model
     )
     
     parsed = self.llm.ask(
         f"Extract commands from:\n{plan.text}",
-        model=self.model
     )
 ```
 
@@ -544,7 +549,8 @@ from src.llm.client import LLMClient
 
 # Caching is handled at the message level
 llm = LLMClient(
-    model="deepseek-v4-pro",
+    base_url="https://<gateway-host>/llm/v1",
+    token="<gateway-token>",
 )
 
 # The system manages caching automatically through message preparation

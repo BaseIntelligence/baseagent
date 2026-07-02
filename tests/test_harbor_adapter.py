@@ -103,28 +103,31 @@ def test_agent_entrypoint_importable_without_harbor():
 def test_agent_entrypoint_accepts_harbor_factory_kwargs(tmp_path):
     import agent as agent_module
 
-    instance = agent_module.Agent(logs_dir=tmp_path, model_name="deepseek-v4-pro", extra="ignored")
+    instance = agent_module.Agent(logs_dir=tmp_path, model_name="gateway-default", extra="ignored")
 
     assert instance.import_path() == "agent:Agent"
 
 
 @pytest.mark.asyncio
-async def test_run_requires_deepseek_api_key(monkeypatch, tmp_path):
+async def test_run_requires_gateway_url(monkeypatch, tmp_path):
     import agent
 
-    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("BASE_LLM_GATEWAY_URL", raising=False)
+    monkeypatch.delenv("BASE_GATEWAY_TOKEN", raising=False)
+    monkeypatch.delenv("BASEAGENT_MOCK_LLM", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "ignored")
     monkeypatch.setenv("OPENAI_API_KEY", "ignored")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "ignored")
     monkeypatch.setenv("OPENROUTER_API_KEY", "ignored")
     monkeypatch.setenv("CHUTES_API_KEY", "ignored")
     monkeypatch.setattr(agent, "LLMClient", lambda **kwargs: pytest.fail("LLMClient should not be constructed"))
 
-    with pytest.raises(ValueError, match="DEEPSEEK_API_KEY"):
+    with pytest.raises(ValueError, match="BASE_LLM_GATEWAY_URL"):
         await agent.Agent().run("do work", FakeHarborEnvironment(tmp_path), SimpleNamespace(env={}))
 
 
 @pytest.mark.asyncio
-async def test_context_env_hydrates_deepseek_only(monkeypatch, tmp_path):
+async def test_context_env_hydrates_gateway(monkeypatch, tmp_path):
     import agent
     from src.tools.harbor_registry import HarborToolRegistry
 
@@ -143,8 +146,9 @@ async def test_context_env_hydrates_deepseek_only(monkeypatch, tmp_path):
         captured["config"] = config
         ctx.done()
 
-    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
-    monkeypatch.delenv("DEEPSEEK_BASE_URL", raising=False)
+    monkeypatch.delenv("BASE_LLM_GATEWAY_URL", raising=False)
+    monkeypatch.delenv("BASE_GATEWAY_TOKEN", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "ignored-deepseek")
     monkeypatch.setenv("OPENAI_API_KEY", "ignored-openai")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "ignored-anthropic")
     monkeypatch.setenv("CHUTES_API_KEY", "ignored-chutes")
@@ -152,9 +156,8 @@ async def test_context_env_hydrates_deepseek_only(monkeypatch, tmp_path):
     monkeypatch.setattr(agent, "run_agent_loop", fake_loop)
 
     env = {
-        "DEEPSEEK_API_KEY": "context-key",
-        "DEEPSEEK_BASE_URL": "https://deepseek.example",
-        "LLM_MODEL": "deepseek-test-model",
+        "BASE_LLM_GATEWAY_URL": "https://gateway.example/llm/v1",
+        "BASE_GATEWAY_TOKEN": "context-token",
         "LLM_COST_LIMIT": "1.25",
         "OPENROUTER_API_KEY": "ignored-openrouter",
     }
@@ -163,12 +166,11 @@ async def test_context_env_hydrates_deepseek_only(monkeypatch, tmp_path):
 
     assert result == "Task completed"
     assert captured["llm_kwargs"] == {
-        "model": "deepseek-test-model",
         "temperature": 0.0,
         "max_tokens": 16384,
         "cost_limit": 1.25,
-        "base_url": "https://deepseek.example",
-        "api_key": "context-key",
+        "base_url": "https://gateway.example/llm/v1",
+        "token": "context-token",
         "mock": False,
     }
     assert captured["ctx_cwd"] == "/app"
@@ -181,6 +183,8 @@ async def test_run_mock_llm_executes_without_api_key(monkeypatch, tmp_path):
     import agent
 
     for key in (
+        "BASE_LLM_GATEWAY_URL",
+        "BASE_GATEWAY_TOKEN",
         "DEEPSEEK_API_KEY",
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
@@ -281,7 +285,7 @@ async def test_registry_remote_operations_use_app_not_agent_mount(tmp_path):
     assert all(call["cwd"] == "/app" for call in environment.calls)
 
 
-def test_loop_does_not_send_deepseek_incompatible_reasoning_payload():
+def test_loop_does_not_send_incompatible_reasoning_payload():
     from src.core.loop import run_agent_loop
     from src.tools.registry import ToolRegistry
 

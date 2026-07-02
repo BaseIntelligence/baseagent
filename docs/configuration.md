@@ -16,8 +16,8 @@ The main configuration is stored in the `CONFIG` dictionary:
 # src/config/defaults.py
 CONFIG = {
     # Model Settings
-    "model": "deepseek-v4-pro",
-    "provider": "deepseek",
+    "model": "gateway-default",
+    "provider": "gateway",
     "temperature": 0.0,
     "max_tokens": 16384,
     "reasoning_effort": "none",
@@ -57,26 +57,20 @@ CONFIG = {
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEEPSEEK_API_KEY` | none | API key for DeepSeek |
-| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | DeepSeek API base URL |
-| `LLM_MODEL` | `deepseek-v4-pro` | Configured DeepSeek model identifier |
+| `BASE_LLM_GATEWAY_URL` | none | Base URL of the platform LLM gateway (OpenAI-compatible; agent appends `chat/completions`) |
+| `BASE_GATEWAY_TOKEN` | none | Signed gateway token used as `Authorization: Bearer` |
 | `LLM_COST_LIMIT` | `10.0` | Maximum cost in USD before aborting |
-
-### API Keys
-
-| Variable | Provider | Description |
-|----------|----------|-------------|
-| `DEEPSEEK_API_KEY` | DeepSeek | API key for DeepSeek |
 
 ### Example Setup
 
 ```bash
-export DEEPSEEK_API_KEY="your-token"
-export DEEPSEEK_BASE_URL="https://api.deepseek.com"
-export LLM_MODEL="deepseek-v4-pro"
+export BASE_LLM_GATEWAY_URL="https://<gateway-host>/llm/v1"
+export BASE_GATEWAY_TOKEN="your-signed-gateway-token"
+# Optional cost cap
+export LLM_COST_LIMIT="10.0"
 ```
 
-Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
+The agent calls the platform LLM gateway at `BASE_LLM_GATEWAY_URL` using `BASE_GATEWAY_TOKEN`; the platform chooses the provider and model. Miners MUST NOT embed provider API keys, base URLs, or model names, and MUST NOT call any LLM provider directly. Set `BASEAGENT_MOCK_LLM=1` to run without a gateway URL or token (mock mode).
 
 ---
 
@@ -88,7 +82,7 @@ Challenge API policy: this agent is configured to use only the DeepSeek API for 
 graph LR
     subgraph Model["Model Configuration"]
         M1["model<br/>Model identifier"]
-        M2["provider<br/>deepseek"]
+        M2["provider<br/>gateway"]
         M3["temperature<br/>Response randomness"]
         M4["max_tokens<br/>Max output tokens"]
         M5["reasoning_effort<br/>Reasoning depth"]
@@ -97,8 +91,8 @@ graph LR
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `model` | `str` | `deepseek-v4-pro` | DeepSeek model identifier |
-| `provider` | `str` | `deepseek` | LLM provider name |
+| `model` | `str` | `gateway-default` | Neutral placeholder; the gateway injects the real model |
+| `provider` | `str` | `gateway` | Always the platform LLM gateway |
 | `temperature` | `float` | `0.0` | Response randomness (0 = deterministic) |
 | `max_tokens` | `int` | `16384` | Maximum tokens in LLM response |
 | `reasoning_effort` | `str` | `none` | Reasoning depth: `none`, `minimal`, `low`, `medium`, `high`, `xhigh` |
@@ -152,7 +146,7 @@ graph TB
 |---------|------|---------|-------------|
 | `cache_enabled` | `bool` | `True` | Enable supported prompt caching behavior |
 
-> **Note**: Prompt caching behavior depends on the configured DeepSeek API behavior and client support.
+> **Note**: Prompt caching behavior depends on the configured LLM gateway behavior and client support.
 
 ### Execution Flags
 
@@ -167,13 +161,13 @@ graph TB
 
 ---
 
-## DeepSeek Configuration
+## LLM Gateway Configuration
 
 ```python
 # Environment
-DEEPSEEK_API_KEY="your-token"
-DEEPSEEK_BASE_URL="https://api.deepseek.com"
-LLM_MODEL="deepseek-v4-pro"
+BASE_LLM_GATEWAY_URL="https://<gateway-host>/llm/v1"
+BASE_GATEWAY_TOKEN="your-signed-gateway-token"
+LLM_COST_LIMIT="10.0"
 ```
 
 ---
@@ -264,6 +258,5 @@ export LLM_COST_LIMIT="1.0"
 
 ## Next Steps
 
-- [DeepSeek Integration](./chutes-integration.md) - Configure DeepSeek API
 - [Context Management](./context-management.md) - Understand memory management
 - [Best Practices](./best-practices.md) - Optimization tips

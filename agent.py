@@ -3,7 +3,7 @@
 SuperAgent for Term Challenge - Entry Point (SDK 3.0 Compatible).
 
 This agent accepts --instruction from the validator and runs autonomously.
-Uses DeepSeek API for LLM calls instead of term_sdk.
+LLM calls go through the platform LLM gateway (the platform picks provider + model).
 
 Installation:
     pip install .                    # via pyproject.toml
@@ -131,27 +131,26 @@ class Agent(HarborBaseAgent):
             raise ValueError("Harbor environment is required")
 
         context_env = _extract_context_env(context)
-        api_key = os.environ.get("DEEPSEEK_API_KEY") or context_env.get("DEEPSEEK_API_KEY")
+        gateway_url = os.environ.get("BASE_LLM_GATEWAY_URL") or context_env.get(
+            "BASE_LLM_GATEWAY_URL"
+        )
+        token = os.environ.get("BASE_GATEWAY_TOKEN") or context_env.get("BASE_GATEWAY_TOKEN")
         mock = _truthy(
             os.environ.get("BASEAGENT_MOCK_LLM") or context_env.get("BASEAGENT_MOCK_LLM")
         )
-        if not api_key and not mock:
-            raise ValueError("DEEPSEEK_API_KEY is required for BaseAgent Harbor runs")
+        if not gateway_url and not mock:
+            raise ValueError("BASE_LLM_GATEWAY_URL is required for BaseAgent Harbor runs")
 
         config = get_config()
-        if context_env.get("LLM_MODEL"):
-            config["model"] = context_env["LLM_MODEL"]
 
         cost_limit = _parse_optional_float(context_env.get("LLM_COST_LIMIT"))
-        base_url = context_env.get("DEEPSEEK_BASE_URL") or os.environ.get("DEEPSEEK_BASE_URL")
 
         llm = LLMClient(
-            model=config["model"],
             temperature=config.get("temperature"),
             max_tokens=int(config.get("max_tokens", 16384)),
             cost_limit=cost_limit,
-            base_url=base_url,
-            api_key=api_key,
+            base_url=gateway_url,
+            token=token,
             mock=mock,
         )
 
@@ -275,9 +274,9 @@ def main():
     args = parser.parse_args()
 
     _log("=" * 60)
-    _log("SuperAgent Starting (SDK 3.0 - DeepSeek API)")
+    _log("SuperAgent Starting (SDK 3.0 - LLM gateway)")
     _log("=" * 60)
-    _log(f"Model: {CONFIG['model']}")
+    _log(f"Model: {CONFIG['model']} (gateway-injected)")
     _log(f"Reasoning effort: {CONFIG.get('reasoning_effort', 'default')}")
     _log(f"Instruction: {args.instruction[:200]}...")
     _log("-" * 60)
@@ -286,7 +285,6 @@ def main():
     start_time = time.time()
 
     llm = LLMClient(
-        model=CONFIG["model"],
         temperature=CONFIG.get("temperature"),
         max_tokens=CONFIG.get("max_tokens", 16384),
     )

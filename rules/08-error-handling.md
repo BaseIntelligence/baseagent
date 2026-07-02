@@ -52,7 +52,7 @@ from src.llm.client import LLMClient, LLMError, CostLimitExceeded
 class RobustLLMClient:
     def __init__(self, ctx: Any):
         self.ctx = ctx
-        self.llm = LLMClient(model="deepseek-v4-pro")
+        self.llm = LLMClient(base_url="https://<gateway-host>/llm/v1", token="<gateway-token>")
         self.max_retries = 3
         self.base_delay = 5
     

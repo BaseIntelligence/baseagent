@@ -80,8 +80,8 @@ graph TB
     end
     
     subgraph LLM["LLM Layer"]
-        Client["DeepSeek HTTP Client<br/>(src/llm/client.py)"]
-        API["DeepSeek API<br/>https://api.deepseek.com"]
+        Client["LLM Gateway HTTP Client<br/>(src/llm/client.py)"]
+        API["LLM Gateway<br/>BASE_LLM_GATEWAY_URL"]
     end
     
     subgraph Tools["Tool System"]
@@ -115,7 +115,7 @@ BaseAgent runs in **fully autonomous mode**:
 
 ### Prompt Caching
 
-Uses prompt caching when supported by the configured DeepSeek API path:
+Uses prompt caching when supported by the configured LLM gateway path:
 - System prompt cached for stability
 - Last 2 messages cached to extend prefix
 - Reduces repeated prompt work when cache support is available
@@ -152,7 +152,7 @@ sequenceDiagram
     participant User
     participant CLI as agent.py
     participant Loop as Agent Loop
-    participant LLM as LLM (DeepSeek)
+    participant LLM as LLM (Gateway)
     participant Tools as Tool Registry
 
     User->>CLI: python agent.py --instruction "..."

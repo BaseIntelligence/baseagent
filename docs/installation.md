@@ -66,7 +66,7 @@ pip install -e .
 BaseAgent requires these Python packages:
 
 ```
-httpx>=0.27.0           # DeepSeek HTTP client
+httpx>=0.27.0           # LLM gateway HTTP client
 pydantic>=2.0.0         # Data validation
 ```
 
@@ -76,18 +76,18 @@ These are automatically installed via pip.
 
 ## Environment Setup
 
-### 1. Configure DeepSeek API
+### 1. Configure the LLM Gateway
 
-BaseAgent challenge runs use DeepSeek API only for cost reasons.
+BaseAgent challenge runs call the platform LLM gateway, which picks the provider and model.
 
 ```bash
-# Set your DeepSeek API key
-export DEEPSEEK_API_KEY="your-token"
-export DEEPSEEK_BASE_URL="https://api.deepseek.com"
-export LLM_MODEL="deepseek-v4-pro"
+export BASE_LLM_GATEWAY_URL="https://<gateway-host>/llm/v1"
+export BASE_GATEWAY_TOKEN="your-signed-gateway-token"
+# Optional cost cap
+export LLM_COST_LIMIT="10.0"
 ```
 
-Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
+The agent calls the platform LLM gateway at `BASE_LLM_GATEWAY_URL` using `BASE_GATEWAY_TOKEN`; the platform chooses the provider and model. Miners MUST NOT embed provider API keys, base URLs, or model names, and MUST NOT call any LLM provider directly. Set `BASEAGENT_MOCK_LLM=1` to run without a gateway URL or token (mock mode).
 
 ### 2. Create a Configuration File (Optional)
 
@@ -95,9 +95,8 @@ Create `.env` in the project root:
 
 ```bash
 # .env file
-DEEPSEEK_API_KEY=your-token-here
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-LLM_MODEL=deepseek-v4-pro
+BASE_LLM_GATEWAY_URL=https://<gateway-host>/llm/v1
+BASE_GATEWAY_TOKEN=your-signed-gateway-token
 LLM_COST_LIMIT=10.0
 ```
 
@@ -189,10 +188,12 @@ python3 agent.py --instruction "..."
 
 ```bash
 # Check if variables are set
-echo $DEEPSEEK_API_KEY
+echo $BASE_LLM_GATEWAY_URL
+echo $BASE_GATEWAY_TOKEN
 
 # Re-export if needed
-export DEEPSEEK_API_KEY="your-token"
+export BASE_LLM_GATEWAY_URL="https://<gateway-host>/llm/v1"
+export BASE_GATEWAY_TOKEN="your-signed-gateway-token"
 ```
 
 ### Issue: `rg` (ripgrep) Not Found
@@ -218,4 +219,3 @@ cargo install ripgrep
 
 - [Quick Start](./quickstart.md) - Run your first task
 - [Configuration](./configuration.md) - Customize settings
-- [DeepSeek Integration](./chutes-integration.md) - Set up DeepSeek API

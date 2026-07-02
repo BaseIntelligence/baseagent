@@ -4,7 +4,7 @@ BaseAgent - An autonomous coding agent for Term Challenge.
 Inspired by OpenAI Codex CLI, BaseAgent is designed to solve
 terminal-based coding tasks autonomously using LLMs.
 
-SDK 3.0 Compatible - Uses DeepSeek API via httpx instead of term_sdk.
+SDK 3.0 Compatible - Uses the platform LLM gateway (OpenAI-compatible) via httpx.
 
 Usage:
     python agent.py --instruction "Your task here..."

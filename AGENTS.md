@@ -8,10 +8,11 @@ This file provides instructions for AI agents working on this codebase. It also 
 # Install dependencies
 pip install -e .
 
-# Configure DeepSeek for challenge runs
-export DEEPSEEK_API_KEY="your-token"
-export DEEPSEEK_BASE_URL="https://api.deepseek.com"
-export LLM_MODEL="deepseek-v4-pro"
+# Configure the platform LLM gateway for challenge runs
+export BASE_LLM_GATEWAY_URL="https://<gateway-host>/llm/v1"
+export BASE_GATEWAY_TOKEN="your-signed-gateway-token"
+# Optional cost cap
+export LLM_COST_LIMIT="10.0"
 
 # Run local CLI entrypoint
 python agent.py --instruction "Your task here"
@@ -26,7 +27,7 @@ pip install -e term-challenge/sdk/python/
 
 ## Challenge API Policy
 
-Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Harbor context.env may forward DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, LLM_MODEL, and LLM_COST_LIMIT. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
+The agent calls the platform LLM gateway at `BASE_LLM_GATEWAY_URL` using `BASE_GATEWAY_TOKEN`; the platform chooses the provider and model. Harbor `context.env` may forward `BASE_LLM_GATEWAY_URL`, `BASE_GATEWAY_TOKEN`, and optional `LLM_COST_LIMIT`. Miners MUST NOT embed provider API keys, base URLs, or model names, and MUST NOT call any LLM provider directly. Set `BASEAGENT_MOCK_LLM=1` to run without any gateway URL or token (mock mode).
 
 ## Project Structure
 

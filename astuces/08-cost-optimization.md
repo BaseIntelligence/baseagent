@@ -15,7 +15,7 @@ For a typical task:
 - 100k context average
 - 500 output tokens per turn
 
-For challenge runs, BaseAgent uses DeepSeek API with `deepseek-v4-pro` for cost reasons.
+For challenge runs, BaseAgent calls the platform LLM gateway, which picks the provider and model.
 
 ## Optimization Strategies
 

@@ -18,7 +18,7 @@ graph TB
     end
     
     subgraph LLM["LLM Layer"]
-        client["client.py<br/>DeepSeek HTTP Client"]
+        client["client.py<br/>LLM Gateway HTTP Client"]
     end
     
     subgraph Config["Configuration"]
@@ -171,7 +171,7 @@ sequenceDiagram
     participant Loop as loop.py
     participant Context as compaction.py
     participant Cache as Prompt Cache
-    participant LLM as DeepSeek HTTP Client
+    participant LLM as LLM Gateway HTTP Client
     participant Provider as API Provider
     participant Tools as Tool Registry
 
@@ -261,8 +261,8 @@ Intelligent context management that:
 
 ### `src/llm/client.py` - LLM Client
 
-httpx-based DeepSeek client that:
-- Uses the DeepSeek API for challenge runs
+httpx-based LLM gateway client that:
+- Uses the platform LLM gateway for challenge runs
 - Tracks token usage and costs
 - Handles tool/function calling format
 - Enforces cost limits

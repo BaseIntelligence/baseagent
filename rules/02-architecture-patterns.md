@@ -20,7 +20,7 @@ my-agent/
 │   │   ├── loop.py       # Main loop
 │   │   └── compaction.py # Context management (MANDATORY)
 │   ├── llm/
-│   │   └── client.py     # LLM client (DeepSeek API)
+│   │   └── client.py     # LLM client (LLM gateway, httpx)
 │   └── tools/
 │       └── ...           # Tools
 ├── requirements.txt      # Dependencies

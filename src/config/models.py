@@ -28,9 +28,13 @@ class OutputMode(str, Enum):
 
 
 class Provider(str, Enum):
-    """LLM provider."""
+    """LLM provider.
 
-    DEEPSEEK = "deepseek"
+    The agent always calls the platform LLM gateway; the gateway (not the agent)
+    picks the real upstream provider and model.
+    """
+
+    GATEWAY = "gateway"
 
 
 class ReasoningConfig(BaseModel):
@@ -97,8 +101,11 @@ class AgentConfig(BaseModel):
     """Main configuration for the SuperAgent."""
 
     # Model settings
-    model: str = Field(default="deepseek-v4-pro", description="Model to use")
-    provider: Provider = Field(default=Provider.DEEPSEEK, description="LLM provider")
+    model: str = Field(
+        default="gateway-default",
+        description="Neutral placeholder; the gateway injects the real model",
+    )
+    provider: Provider = Field(default=Provider.GATEWAY, description="LLM provider")
     max_iterations: int = Field(default=50, description="Maximum iterations")
     timeout: int = Field(default=120, description="Timeout per LLM call in seconds")
     temperature: float = Field(default=0.7, description="Generation temperature")
@@ -117,25 +124,13 @@ class AgentConfig(BaseModel):
         """Get the working directory as a Path object."""
         return Path(self.paths.cwd or os.getcwd())
 
-    def get_api_key(self) -> str:
-        """Get the API key for the configured provider."""
-        env_vars = {
-            Provider.DEEPSEEK: ["DEEPSEEK_API_KEY"],
-        }
+    def get_token(self) -> str | None:
+        """Get the signed gateway token used to authenticate to the LLM gateway.
 
-        for var in env_vars.get(self.provider, []):
-            key = os.environ.get(var)
-            if key:
-                return key
+        The agent never holds a provider API key; the gateway token is the auth.
+        """
+        return os.environ.get("BASE_GATEWAY_TOKEN")
 
-        raise ValueError(
-            f"No API key found for provider {self.provider}. "
-            f"Set one of: {env_vars.get(self.provider, [])}"
-        )
-
-    def get_base_url(self) -> str:
-        """Get the base URL for the configured provider."""
-        urls = {
-            Provider.DEEPSEEK: os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-        }
-        return urls[self.provider]
+    def get_base_url(self) -> str | None:
+        """Get the LLM gateway base URL (OpenAI-compatible)."""
+        return os.environ.get("BASE_LLM_GATEWAY_URL")

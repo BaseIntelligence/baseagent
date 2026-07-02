@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">BaseAgent</h1>
   <p align="center"><strong>High-performance autonomous agent for <a href="https://term.challenge">Term Challenge</a></strong></p>
-  <p align="center">Fully autonomous with <strong>DeepSeek API</strong>, powered by <strong>deepseek-v4-pro</strong></p>
+  <p align="center">Fully autonomous via the <strong>platform LLM gateway</strong> (the platform picks the provider and model)</p>
 </p>
 
 ---
@@ -11,7 +11,6 @@
 | Project | Description |
 |---------|-------------|
 | [Basilica](https://github.com/one-covenant/basilica) | Secure TEE Container Runtime |
-| [DeepSeek API](https://api.deepseek.com) | DeepSeek LLM API |
 | [Platform Network](https://github.com/PlatformNetwork/platform) | Platform Network Core |
 | [How to Mine on subnet 100 with this Agent](https://www.platform.network/docs) | Mining Documentation |
 ## Architecture at a Glance
@@ -38,9 +37,9 @@ graph TB
     end
     
     subgraph LLM["LLM Layer (External)"]
-        subgraph DeepSeek["DeepSeek API"]
-            Client["DeepSeek API Client"]
-            Model["deepseek-v4-pro"]
+        subgraph Gateway["LLM Gateway"]
+            Client["LLM Gateway HTTP Client"]
+            Model["gateway-default"]
         end
         
         subgraph BasilicaLLM["Basilica (Soon)"]
@@ -72,11 +71,11 @@ graph TB
 - **Prompt Caching** - 90%+ cache hit rate for significant cost reduction
 - **Context Management** - Intelligent pruning and compaction for long tasks
 - **Self-Verification** - Automatic validation before task completion
-- **DeepSeek API** - challenge runs use `deepseek-v4-pro` through the DeepSeek API
+- **LLM Gateway** - challenge runs call the platform LLM gateway, which picks the provider and model
 
 ## Challenge API Policy
 
-Challenge API policy: this agent is configured to use only the DeepSeek API for cost reasons. Challenge runs must use DEEPSEEK_API_KEY and the configured DeepSeek model. Do not add or rely on Chutes, OpenRouter, Anthropic, OpenAI, or other provider fallbacks for challenge execution.
+The agent calls the platform LLM gateway at `BASE_LLM_GATEWAY_URL` using `BASE_GATEWAY_TOKEN`; the platform chooses the provider and model. Miners MUST NOT embed provider API keys, base URLs, or model names, and MUST NOT call any LLM provider directly. Set `BASEAGENT_MOCK_LLM=1` to run without a gateway URL or token (mock mode).
 
 ---
 
@@ -93,9 +92,10 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-export DEEPSEEK_API_KEY="your-token"
-export DEEPSEEK_BASE_URL="https://api.deepseek.com"
-export LLM_MODEL="deepseek-v4-pro"
+export BASE_LLM_GATEWAY_URL="https://<gateway-host>/llm/v1"
+export BASE_GATEWAY_TOKEN="your-signed-gateway-token"
+# Optional cost cap
+export LLM_COST_LIMIT="10.0"
 python agent.py --instruction "Your task here..."
 ```
 
@@ -103,7 +103,7 @@ python agent.py --instruction "Your task here..."
 
 Agent-challenge Harbor runners should import `agent:Agent` from the root `agent.py` file in the submitted ZIP. The same file also remains available for local `--instruction` runs. Harbor execution uses `src/tools/harbor_registry.py` so task tools run through `environment.exec` in the remote task workspace. The default task working directory is `/app`; `/workspace/agent` is treated as the mounted agent artifact, not the task filesystem.
 
-Forward only DeepSeek runtime configuration into Harbor: `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, optional `LLM_MODEL`, and optional `LLM_COST_LIMIT`. BaseAgent does not use OpenRouter, Anthropic, OpenAI, Chutes, or Harbor as runtime dependencies.
+Forward only gateway runtime configuration into Harbor: `BASE_LLM_GATEWAY_URL`, `BASE_GATEWAY_TOKEN`, and optional `LLM_COST_LIMIT`. Miners must not embed provider API keys, base URLs, or model names, and must not call any LLM provider directly.
 
 ---
 
@@ -117,7 +117,7 @@ baseagent/
 │   │   ├── loop.py          # Main agent loop
 │   │   └── compaction.py    # Context management
 │   ├── llm/
-│   │   └── client.py        # LLM client (DeepSeek API)
+│   │   └── client.py        # LLM client (LLM gateway, httpx)
 │   ├── config/
 │   │   └── defaults.py      # Configuration
 │   ├── tools/               # Tool implementations
@@ -144,7 +144,7 @@ flowchart TB
     
     LoopStart -->|Yes| ManageCtx[Manage Context<br/>Prune/Compact if needed]
     ManageCtx --> ApplyCache[Apply Prompt Caching]
-    ApplyCache --> CallLLM[Call deepseek-v4-pro]
+    ApplyCache --> CallLLM[Call the LLM gateway]
     
     CallLLM --> HasCalls{Has Tool Calls?}
     
@@ -241,13 +241,14 @@ sequenceDiagram
 
 ---
 
-## LLM Client (DeepSeek API)
+## LLM Client (LLM gateway)
 
 ```python
 from src.llm.client import LLMClient
 
 llm = LLMClient(
-    model="deepseek-v4-pro",
+    base_url="https://<gateway-host>/llm/v1",
+    token="<gateway-token>",
     temperature=1.0,
     max_tokens=16384,
 )
@@ -257,12 +258,12 @@ response = llm.chat(messages, tools=tool_specs)
 
 ### Reasoning Responses
 
-DeepSeek handles complex reasoning through `deepseek-v4-pro`:
+The platform LLM gateway handles complex reasoning through its injected model:
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Model as deepseek-v4-pro
+    participant Model as LLM Gateway
     participant Response
 
     User->>Model: Complex task instruction
@@ -323,8 +324,8 @@ flowchart LR
 ```python
 # src/config/defaults.py
 CONFIG = {
-    "model": "deepseek-v4-pro",
-    "provider": "deepseek",
+    "model": "gateway-default",
+    "provider": "gateway",
     "max_tokens": 16384,
     "temperature": 1.0,
     "max_iterations": 200,
@@ -336,9 +337,8 @@ CONFIG = {
 
 | Variable | Description |
 |----------|-------------|
-| `DEEPSEEK_API_KEY` | DeepSeek API key |
-| `DEEPSEEK_BASE_URL` | DeepSeek API base URL, `https://api.deepseek.com` |
-| `LLM_MODEL` | Model override, default `deepseek-v4-pro` |
+| `BASE_LLM_GATEWAY_URL` | Base URL of the platform LLM gateway (OpenAI-compatible; agent appends `chat/completions`) |
+| `BASE_GATEWAY_TOKEN` | Signed gateway token used as `Authorization: Bearer` |
 | `LLM_COST_LIMIT` | Maximum cost in USD before aborting |
 
 ---
@@ -349,7 +349,6 @@ See [docs/](docs/) for comprehensive documentation:
 
 - [Overview](docs/overview.md) - Design principles
 - [Architecture](docs/architecture.md) - Technical deep-dive
-- [DeepSeek Integration](docs/chutes-integration.md) - API setup
 - [Tools Reference](docs/tools.md) - All tools documented
 - [Context Management](docs/context-management.md) - Token optimization
 - [Best Practices](docs/best-practices.md) - Performance tips

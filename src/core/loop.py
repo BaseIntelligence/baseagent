@@ -3,7 +3,7 @@ Main agent loop - the heart of the SuperAgent system.
 
 Implements the agentic loop that:
 1. Receives instruction via --instruction argument
-2. Calls LLM with tools (using DeepSeek API)
+2. Calls LLM with tools (via the platform LLM gateway)
 3. Executes tool calls
 4. Loops until task is complete
 5. Emits JSONL events throughout
@@ -103,7 +103,7 @@ def _apply_caching(
     - By marking the last messages, we cache the entire conversation history
     - Each new request only adds new messages after the cached prefix
 
-    Provider limits vary; unsupported cache markers are stripped before DeepSeek requests.
+    Provider limits vary; unsupported cache markers are stripped before gateway requests.
 
     Reference: OpenCode transform.ts applyCaching()
     """

@@ -67,8 +67,8 @@ python test_agent.py
 # Run with verbose output
 python -u test_agent.py 2>&1 | tee test.log
 
-# Run with environment variables
-LLM_MODEL="anthropic/claude-3-haiku" python test_agent.py
+# Run in mock mode (no gateway URL or token needed)
+BASEAGENT_MOCK_LLM=1 python test_agent.py
 ```
 
 ---
