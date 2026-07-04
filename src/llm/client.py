@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -133,12 +134,95 @@ class LLMClient:
         headers = {"Content-Type": "application/json"}
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
+        self._headers = headers
 
-        self._client = httpx.Client(
+        self._client = self._build_client()
+
+    def _build_client(self) -> httpx.Client:
+        """Construct a freshly-configured gateway HTTP client.
+
+        Isolated from ``__init__`` so a broken or closed client can be rebuilt
+        transparently mid-run with the same base_url, headers, and timeout.
+        """
+        return httpx.Client(
             base_url=self.base_url,
-            headers=headers,
-            timeout=httpx.Timeout(timeout, connect=30.0),
+            headers=self._headers,
+            timeout=httpx.Timeout(self.timeout, connect=30.0),
         )
+
+    def _discard_client(self) -> None:
+        """Best-effort close the current client and drop the reference."""
+        client = self._client
+        self._client = None
+        if client is not None:
+            try:
+                client.close()
+            except Exception:
+                pass
+
+    def _ensure_client(self) -> None:
+        """Rebuild the HTTP client if it is missing or has been closed.
+
+        A single transient socket error can close the pooled client, after which
+        httpx raises ``RuntimeError: Cannot send a request, as the client has
+        been closed.`` for every later request. Rebuilding restores service.
+        """
+        if self._client is None or self._client.is_closed:
+            self._discard_client()
+            self._client = self._build_client()
+
+    @staticmethod
+    def _is_transport_failure(exc: Exception) -> bool:
+        """Whether an exception means the HTTP client/connection is broken.
+
+        Covers httpx transport/protocol errors, the "client has been closed"
+        RuntimeError, and a stale-socket ``Bad file descriptor`` surfaced as an
+        OSError or generic httpx error. Timeouts are intentionally excluded:
+        they carry their own error code and do not indicate a dead client.
+        """
+        if isinstance(exc, httpx.TimeoutException):
+            return False
+        if isinstance(exc, (httpx.TransportError, httpx.RemoteProtocolError)):
+            return True
+        message = str(exc).lower()
+        if isinstance(exc, RuntimeError):
+            return "closed" in message
+        if isinstance(exc, (OSError, httpx.HTTPError)):
+            return "bad file descriptor" in message
+        return False
+
+    def _post_with_transport_retry(self, payload: Dict[str, Any]) -> httpx.Response:
+        """POST to the gateway, transparently rebuilding a broken client.
+
+        A transient connection/transport failure (including a closed client or a
+        stale socket raising ``Bad file descriptor``) discards the client and
+        retries with a freshly built one, up to a small bounded number of
+        attempts, before surfacing a connection error. Timeouts and genuine HTTP
+        status responses are left to the caller's existing handling.
+        """
+        max_transport_attempts = 3
+        for transport_attempt in range(1, max_transport_attempts + 1):
+            self._ensure_client()
+            try:
+                return self._client.post("/chat/completions", json=payload)
+            except httpx.TimeoutException:
+                # Handled separately as code="timeout"; not a broken client.
+                raise
+            except (
+                httpx.TransportError,
+                httpx.RemoteProtocolError,
+                RuntimeError,
+                OSError,
+                httpx.HTTPError,
+            ) as exc:
+                if not self._is_transport_failure(exc):
+                    raise
+                self._discard_client()
+                if transport_attempt >= max_transport_attempts:
+                    raise LLMError(f"Connection error: {exc}", code="connection_error")
+                time.sleep(transport_attempt)
+        # Unreachable: the loop always returns or raises.
+        raise LLMError("Connection error: retries exhausted", code="connection_error")
 
     def _mock_chat(self) -> LLMResponse:
         # Emits no function calls so the agent loop runs one self-verification
@@ -220,7 +304,7 @@ class LLMClient:
             payload.update(extra_body)
 
         try:
-            response = self._client.post("/chat/completions", json=payload)
+            response = self._post_with_transport_retry(payload)
             self._request_count += 1
 
             # Handle HTTP errors

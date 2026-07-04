@@ -280,7 +280,18 @@ def run_agent_loop(
                     # Check if it's a retryable error
                     is_retryable = any(
                         x in error_msg.lower()
-                        for x in ["504", "timeout", "empty response", "overloaded", "rate_limit"]
+                        for x in [
+                            "504",
+                            "timeout",
+                            "empty response",
+                            "overloaded",
+                            "rate_limit",
+                            "connection",
+                            "closed",
+                            "bad file descriptor",
+                            "reset",
+                            "broken pipe",
+                        ]
                     )
 
                     if attempt < max_retries and is_retryable:
@@ -296,7 +307,18 @@ def run_agent_loop(
                         f"Unexpected error (attempt {attempt}/{max_retries}): {type(e).__name__}: {error_msg}"
                     )
 
-                    is_retryable = any(x in error_msg.lower() for x in ["504", "timeout"])
+                    is_retryable = any(
+                        x in error_msg.lower()
+                        for x in [
+                            "504",
+                            "timeout",
+                            "connection",
+                            "closed",
+                            "bad file descriptor",
+                            "reset",
+                            "broken pipe",
+                        ]
+                    )
 
                     if attempt < max_retries and is_retryable:
                         wait_time = 10 * attempt
