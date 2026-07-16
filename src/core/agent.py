@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, Optional
 
-from src.llm.client import FunctionCall, LLMClient, LLMResponse
 from src.config.models import AgentConfig
 from src.core.session import Session
+from src.llm.client import FunctionCall, LLMClient, LLMResponse
 from src.output.processor import OutputProcessor
 from src.prompts.system import get_system_prompt
 from src.tools.registry import ToolRegistry, ToolResult

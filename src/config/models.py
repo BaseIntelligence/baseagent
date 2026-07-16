@@ -143,11 +143,7 @@ class AgentConfig(BaseModel):
 
     def get_model(self) -> str:
         """Resolve model id: env override then configured default."""
-        return (
-            os.environ.get("LLM_MODEL")
-            or os.environ.get("BASEAGENT_MODEL")
-            or self.model
-        )
+        return os.environ.get("LLM_MODEL") or os.environ.get("BASEAGENT_MODEL") or self.model
 
     # Back-compat name used by older callers; returns provider key, not gateway token.
     def get_token(self) -> str | None:

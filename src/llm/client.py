@@ -198,9 +198,7 @@ def _normalize_provider(raw: Optional[str], *, default: str = "openrouter") -> s
             "use openrouter|openai|custom"
         )
     if value not in {"openrouter", "openai", "custom"}:
-        raise ValueError(
-            f"Unknown LLM provider {value!r}. Expected openrouter|openai|custom."
-        )
+        raise ValueError(f"Unknown LLM provider {value!r}. Expected openrouter|openai|custom.")
     return value
 
 
@@ -337,9 +335,7 @@ def resolve_provider_config(
         if not resolved_key:
             missing.append("api_key (BASEAGENT_LLM_API_KEY / LLM_API_KEY)")
         if missing:
-            raise ValueError(
-                "custom provider requires " + " and ".join(missing)
-            )
+            raise ValueError("custom provider requires " + " and ".join(missing))
 
     # Defend against gateway markers in the resolved base URL as well.
     if challenge_mode:

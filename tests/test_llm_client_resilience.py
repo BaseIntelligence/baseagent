@@ -87,7 +87,12 @@ def test_chat_success_after_transient_retry_ostyle(monkeypatch):
 
 
 def test_mock_mode_returns_mock_without_network(monkeypatch):
-    for key in ("BASE_LLM_GATEWAY_URL", "BASE_GATEWAY_TOKEN", "BASEAGENT_MOCK_LLM", "OPENROUTER_API_KEY"):
+    for key in (
+        "BASE_LLM_GATEWAY_URL",
+        "BASE_GATEWAY_TOKEN",
+        "BASEAGENT_MOCK_LLM",
+        "OPENROUTER_API_KEY",
+    ):
         monkeypatch.delenv(key, raising=False)
 
     client = LLMClient(mock=True)

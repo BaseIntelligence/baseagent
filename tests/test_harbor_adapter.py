@@ -51,7 +51,9 @@ class FakeHarborEnvironment:
         return text
 
     def _map_command(self, command):
-        return command.replace("/workspace/agent", str(self.agent_mount)).replace("/app", str(self.app))
+        return command.replace("/workspace/agent", str(self.agent_mount)).replace(
+            "/app", str(self.app)
+        )
 
 
 class ShellContext:
@@ -103,7 +105,9 @@ def test_agent_entrypoint_importable_without_harbor():
 def test_agent_entrypoint_accepts_harbor_factory_kwargs(tmp_path):
     import agent as agent_module
 
-    instance = agent_module.Agent(logs_dir=tmp_path, model_name="openai/gpt-4o-mini", extra="ignored")
+    instance = agent_module.Agent(
+        logs_dir=tmp_path, model_name="openai/gpt-4o-mini", extra="ignored"
+    )
 
     assert instance.import_path() == "agent:Agent"
 
@@ -317,7 +321,12 @@ def test_loop_does_not_send_incompatible_reasoning_payload():
 
     llm = RecordingLLM()
     ctx = ShellContext()
-    config = {"max_iterations": 3, "cache_enabled": False, "max_tokens": 128, "max_output_tokens": 100}
+    config = {
+        "max_iterations": 3,
+        "cache_enabled": False,
+        "max_tokens": 128,
+        "max_output_tokens": 100,
+    }
 
     run_agent_loop(llm=llm, tools=ToolRegistry(), ctx=ctx, config=config)
 

@@ -44,9 +44,7 @@ def ensure_dependencies():
             [sys.executable, "-m", "pip", "install", "-r", str(req_file), "-q"], check=True
         )
     else:
-        subprocess.run(
-            [sys.executable, "-m", "pip", "install", str(agent_dir), "-q"], check=True
-        )
+        subprocess.run([sys.executable, "-m", "pip", "install", str(agent_dir), "-q"], check=True)
     print("[setup] Dependencies installed", file=sys.stderr)
 
 
