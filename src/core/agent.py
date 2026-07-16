@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, Optional
 
-from src.api.client import FunctionCall, LLMClient, LLMResponse
+from src.llm.client import FunctionCall, LLMClient, LLMResponse
 from src.config.models import AgentConfig
 from src.core.session import Session
 from src.output.processor import OutputProcessor

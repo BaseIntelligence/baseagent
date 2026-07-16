@@ -3,7 +3,7 @@ Main agent loop - the heart of the SuperAgent system.
 
 Implements the agentic loop that:
 1. Receives instruction via --instruction argument
-2. Calls LLM with tools (via the platform LLM gateway)
+2. Calls LLM with tools (via LiteLLM multi-provider)
 3. Executes tool calls
 4. Loops until task is complete
 5. Emits JSONL events throughout

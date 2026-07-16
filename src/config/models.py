@@ -28,13 +28,14 @@ class OutputMode(str, Enum):
 
 
 class Provider(str, Enum):
-    """LLM provider.
+    """LLM provider via LiteLLM.
 
-    The agent always calls the platform LLM gateway; the gateway (not the agent)
-    picks the real upstream provider and model.
+    Challenge default is OpenRouter. Gateway is intentionally absent.
     """
 
-    GATEWAY = "gateway"
+    OPENROUTER = "openrouter"
+    OPENAI = "openai"
+    CUSTOM = "custom"
 
 
 class ReasoningConfig(BaseModel):
@@ -102,10 +103,10 @@ class AgentConfig(BaseModel):
 
     # Model settings
     model: str = Field(
-        default="gateway-default",
-        description="Neutral placeholder; the gateway injects the real model",
+        default="openai/gpt-4o-mini",
+        description="Explicit model id (OpenRouter-style vendor/model)",
     )
-    provider: Provider = Field(default=Provider.GATEWAY, description="LLM provider")
+    provider: Provider = Field(default=Provider.OPENROUTER, description="LLM provider")
     max_iterations: int = Field(default=50, description="Maximum iterations")
     timeout: int = Field(default=120, description="Timeout per LLM call in seconds")
     temperature: float = Field(default=0.7, description="Generation temperature")
@@ -124,13 +125,30 @@ class AgentConfig(BaseModel):
         """Get the working directory as a Path object."""
         return Path(self.paths.cwd or os.getcwd())
 
-    def get_token(self) -> str | None:
-        """Get the signed gateway token used to authenticate to the LLM gateway.
-
-        The agent never holds a provider API key; the gateway token is the auth.
-        """
-        return os.environ.get("BASE_GATEWAY_TOKEN")
+    def get_api_key(self) -> str | None:
+        """Resolve provider API key from env (never a Base gateway token)."""
+        if self.provider is Provider.OPENROUTER:
+            return os.environ.get("OPENROUTER_API_KEY")
+        if self.provider is Provider.OPENAI:
+            return os.environ.get("OPENAI_API_KEY")
+        return os.environ.get("BASEAGENT_LLM_API_KEY") or os.environ.get("LLM_API_KEY")
 
     def get_base_url(self) -> str | None:
-        """Get the LLM gateway base URL (OpenAI-compatible)."""
-        return os.environ.get("BASE_LLM_GATEWAY_URL")
+        """Resolve provider base URL from env."""
+        if self.provider is Provider.OPENROUTER:
+            return os.environ.get("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+        if self.provider is Provider.OPENAI:
+            return os.environ.get("OPENAI_BASE_URL")
+        return os.environ.get("BASEAGENT_LLM_BASE_URL")
+
+    def get_model(self) -> str:
+        """Resolve model id: env override then configured default."""
+        return (
+            os.environ.get("LLM_MODEL")
+            or os.environ.get("BASEAGENT_MODEL")
+            or self.model
+        )
+
+    # Back-compat name used by older callers; returns provider key, not gateway token.
+    def get_token(self) -> str | None:
+        return self.get_api_key()

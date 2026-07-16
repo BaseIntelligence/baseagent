@@ -21,11 +21,10 @@ CONFIG: Dict[str, Any] = {
     # ==========================================================================
     # Model Settings (simulates --model gpt-5.2 -c model_reasoning_effort=xhigh)
     # ==========================================================================
-    # Neutral placeholder only (logging/AgentInfo); the LLM gateway injects the
-    # real provider + model, so the agent never pins a specific model.
-    "model": "gateway-default",
-    # Provider
-    "provider": "gateway",
+    # Explicit model id for LiteLLM/OpenRouter (override with LLM_MODEL).
+    "model": "openai/gpt-4o-mini",
+    # Provider: openrouter (default) | openai | custom
+    "provider": "openrouter",
     "reasoning_effort": "none",
     # Token limits
     "max_tokens": 16384,

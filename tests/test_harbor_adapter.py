@@ -103,31 +103,53 @@ def test_agent_entrypoint_importable_without_harbor():
 def test_agent_entrypoint_accepts_harbor_factory_kwargs(tmp_path):
     import agent as agent_module
 
-    instance = agent_module.Agent(logs_dir=tmp_path, model_name="gateway-default", extra="ignored")
+    instance = agent_module.Agent(logs_dir=tmp_path, model_name="openai/gpt-4o-mini", extra="ignored")
 
     assert instance.import_path() == "agent:Agent"
 
 
 @pytest.mark.asyncio
-async def test_run_requires_gateway_url(monkeypatch, tmp_path):
+async def test_run_requires_api_key_without_gateway(monkeypatch, tmp_path):
     import agent
 
-    monkeypatch.delenv("BASE_LLM_GATEWAY_URL", raising=False)
-    monkeypatch.delenv("BASE_GATEWAY_TOKEN", raising=False)
-    monkeypatch.delenv("BASEAGENT_MOCK_LLM", raising=False)
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "ignored")
-    monkeypatch.setenv("OPENAI_API_KEY", "ignored")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "ignored")
-    monkeypatch.setenv("OPENROUTER_API_KEY", "ignored")
-    monkeypatch.setenv("CHUTES_API_KEY", "ignored")
-    monkeypatch.setattr(agent, "LLMClient", lambda **kwargs: pytest.fail("LLMClient should not be constructed"))
+    for key in (
+        "BASE_LLM_GATEWAY_URL",
+        "BASE_GATEWAY_TOKEN",
+        "BASEAGENT_MOCK_LLM",
+        "OPENROUTER_API_KEY",
+        "OPENAI_API_KEY",
+        "BASEAGENT_LLM_API_KEY",
+        "LLM_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "CHUTES_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(
+        agent, "LLMClient", lambda **kwargs: pytest.fail("LLMClient should not be constructed")
+    )
 
-    with pytest.raises(ValueError, match="BASE_LLM_GATEWAY_URL"):
+    with pytest.raises(ValueError, match="(?i)API key|OPENROUTER"):
         await agent.Agent().run("do work", FakeHarborEnvironment(tmp_path), SimpleNamespace(env={}))
 
 
 @pytest.mark.asyncio
-async def test_context_env_hydrates_gateway(monkeypatch, tmp_path):
+async def test_run_refuses_gateway_env_even_with_openrouter(monkeypatch, tmp_path):
+    import agent
+
+    monkeypatch.delenv("BASEAGENT_MOCK_LLM", raising=False)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setenv("BASE_LLM_GATEWAY_URL", "https://gateway.example/llm/v1")
+    monkeypatch.setattr(
+        agent, "LLMClient", lambda **kwargs: pytest.fail("LLMClient should not be constructed")
+    )
+
+    with pytest.raises(ValueError, match="(?i)gateway"):
+        await agent.Agent().run("do work", FakeHarborEnvironment(tmp_path), SimpleNamespace(env={}))
+
+
+@pytest.mark.asyncio
+async def test_context_env_hydrates_openrouter(monkeypatch, tmp_path):
     import agent
     from src.tools.harbor_registry import HarborToolRegistry
 
@@ -146,33 +168,37 @@ async def test_context_env_hydrates_gateway(monkeypatch, tmp_path):
         captured["config"] = config
         ctx.done()
 
-    monkeypatch.delenv("BASE_LLM_GATEWAY_URL", raising=False)
-    monkeypatch.delenv("BASE_GATEWAY_TOKEN", raising=False)
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "ignored-deepseek")
-    monkeypatch.setenv("OPENAI_API_KEY", "ignored-openai")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "ignored-anthropic")
-    monkeypatch.setenv("CHUTES_API_KEY", "ignored-chutes")
+    for key in (
+        "BASE_LLM_GATEWAY_URL",
+        "BASE_GATEWAY_TOKEN",
+        "OPENROUTER_API_KEY",
+        "LLM_MODEL",
+        "BASEAGENT_LLM_PROVIDER",
+    ):
+        monkeypatch.delenv(key, raising=False)
     monkeypatch.setattr(agent, "LLMClient", DummyLLM)
     monkeypatch.setattr(agent, "run_agent_loop", fake_loop)
 
     env = {
-        "BASE_LLM_GATEWAY_URL": "https://gateway.example/llm/v1",
-        "BASE_GATEWAY_TOKEN": "context-token",
+        "OPENROUTER_API_KEY": "context-or-key",
+        "LLM_MODEL": "openai/gpt-4o-mini",
         "LLM_COST_LIMIT": "1.25",
-        "OPENROUTER_API_KEY": "ignored-openrouter",
+        "BASEAGENT_LLM_PROVIDER": "openrouter",
     }
 
     result = await agent.Agent().run("do work", FakeHarborEnvironment(tmp_path), {"env": env})
 
     assert result == "Task completed"
-    assert captured["llm_kwargs"] == {
-        "temperature": 0.0,
-        "max_tokens": 16384,
-        "cost_limit": 1.25,
-        "base_url": "https://gateway.example/llm/v1",
-        "token": "context-token",
-        "mock": False,
-    }
+    kwargs = captured["llm_kwargs"]
+    assert kwargs["temperature"] == 0.0
+    assert kwargs["max_tokens"] == 16384
+    assert kwargs["cost_limit"] == 1.25
+    assert kwargs["api_key"] == "context-or-key"
+    assert kwargs["mock"] is False
+    assert kwargs.get("provider") == "openrouter"
+    assert kwargs.get("model") == "openai/gpt-4o-mini"
+    assert "token" not in kwargs or kwargs.get("token") is None
+    assert not (kwargs.get("base_url") or "").endswith("/llm/v1")
     assert captured["ctx_cwd"] == "/app"
     assert captured["tools_type"] is HarborToolRegistry
     assert captured["closed"] is True

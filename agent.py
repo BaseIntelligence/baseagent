@@ -3,7 +3,8 @@
 SuperAgent for Term Challenge - Entry Point (SDK 3.0 Compatible).
 
 This agent accepts --instruction from the validator and runs autonomously.
-LLM calls go through the platform LLM gateway (the platform picks provider + model).
+LLM calls go through LiteLLM multi-provider (default OpenRouter for challenge).
+Base LLM gateway env/URL residue is refused fail-closed.
 
 Installation:
     pip install .                    # via pyproject.toml
@@ -32,7 +33,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Auto-install dependencies if missing
 def ensure_dependencies():
     """Install dependencies if not present."""
-    if importlib.util.find_spec("httpx") and importlib.util.find_spec("pydantic"):
+    needed = ("httpx", "pydantic", "litellm")
+    if all(importlib.util.find_spec(name) for name in needed):
         return
     print("[setup] Installing dependencies...", file=sys.stderr)
     agent_dir = Path(__file__).parent
@@ -52,7 +54,12 @@ ensure_dependencies()
 
 from src.config.defaults import CONFIG, get_config  # noqa: E402
 from src.core.loop import run_agent_loop  # noqa: E402
-from src.llm.client import CostLimitExceeded, LLMClient, _truthy  # noqa: E402
+from src.llm.client import (  # noqa: E402
+    CostLimitExceeded,
+    LLMClient,
+    _truthy,
+    refuse_if_gateway_residue,
+)
 from src.output.jsonl import ErrorEvent, emit  # noqa: E402
 from src.tools.harbor_registry import (  # noqa: E402
     DEFAULT_HARBOR_CWD,
@@ -131,28 +138,79 @@ class Agent(HarborBaseAgent):
             raise ValueError("Harbor environment is required")
 
         context_env = _extract_context_env(context)
-        gateway_url = os.environ.get("BASE_LLM_GATEWAY_URL") or context_env.get(
-            "BASE_LLM_GATEWAY_URL"
-        )
-        token = os.environ.get("BASE_GATEWAY_TOKEN") or context_env.get("BASE_GATEWAY_TOKEN")
+        # Merge process env + Harbor context.env for fail-closed gateway residue scan.
+        merged_env = {**os.environ, **context_env}
         mock = _truthy(
             os.environ.get("BASEAGENT_MOCK_LLM") or context_env.get("BASEAGENT_MOCK_LLM")
         )
-        if not gateway_url and not mock:
-            raise ValueError("BASE_LLM_GATEWAY_URL is required for BaseAgent Harbor runs")
+        # Challenge harbor runs always refuse Base gateway residue.
+        refuse_if_gateway_residue(merged_env)
 
         config = get_config()
-
-        cost_limit = _parse_optional_float(context_env.get("LLM_COST_LIMIT"))
-
-        llm = LLMClient(
-            temperature=config.get("temperature"),
-            max_tokens=int(config.get("max_tokens", 16384)),
-            cost_limit=cost_limit,
-            base_url=gateway_url,
-            token=token,
-            mock=mock,
+        cost_limit = _parse_optional_float(
+            context_env.get("LLM_COST_LIMIT") or os.environ.get("LLM_COST_LIMIT")
         )
+
+        provider = (
+            context_env.get("BASEAGENT_LLM_PROVIDER")
+            or os.environ.get("BASEAGENT_LLM_PROVIDER")
+            or context_env.get("LLM_PROVIDER")
+            or os.environ.get("LLM_PROVIDER")
+            or config.get("provider")
+            or "openrouter"
+        )
+        model = (
+            context_env.get("LLM_MODEL")
+            or os.environ.get("LLM_MODEL")
+            or context_env.get("BASEAGENT_MODEL")
+            or os.environ.get("BASEAGENT_MODEL")
+            or config.get("model")
+        )
+        api_key = (
+            context_env.get("OPENROUTER_API_KEY")
+            or os.environ.get("OPENROUTER_API_KEY")
+            or context_env.get("OPENAI_API_KEY")
+            or os.environ.get("OPENAI_API_KEY")
+            or context_env.get("BASEAGENT_LLM_API_KEY")
+            or os.environ.get("BASEAGENT_LLM_API_KEY")
+            or context_env.get("LLM_API_KEY")
+            or os.environ.get("LLM_API_KEY")
+        )
+        base_url = (
+            context_env.get("OPENROUTER_BASE_URL")
+            or os.environ.get("OPENROUTER_BASE_URL")
+            or context_env.get("OPENAI_BASE_URL")
+            or os.environ.get("OPENAI_BASE_URL")
+            or context_env.get("BASEAGENT_LLM_BASE_URL")
+            or os.environ.get("BASEAGENT_LLM_BASE_URL")
+        )
+
+        if not mock and not api_key:
+            raise ValueError(
+                "OpenRouter/OpenAI/custom API key is required for BaseAgent Harbor runs "
+                "(set OPENROUTER_API_KEY, or BASEAGENT_MOCK_LLM=1 for offline)."
+            )
+
+        # Temporarily hydrate env from context for LLMClient resolution.
+        hydrated = []
+        for key, value in context_env.items():
+            if key not in os.environ and value is not None:
+                os.environ[key] = value
+                hydrated.append(key)
+        try:
+            llm = LLMClient(
+                provider=provider,
+                model=model,
+                temperature=config.get("temperature"),
+                max_tokens=int(config.get("max_tokens", 16384)),
+                cost_limit=cost_limit,
+                base_url=base_url,
+                api_key=api_key,
+                mock=mock,
+            )
+        finally:
+            for key in hydrated:
+                os.environ.pop(key, None)
 
         loop = asyncio.get_running_loop()
         harbor_context = HarborAgentContext(
@@ -274,9 +332,10 @@ def main():
     args = parser.parse_args()
 
     _log("=" * 60)
-    _log("SuperAgent Starting (SDK 3.0 - LLM gateway)")
+    _log("SuperAgent Starting (SDK 3.0 - LiteLLM multi-provider)")
     _log("=" * 60)
-    _log(f"Model: {CONFIG['model']} (gateway-injected)")
+    _log(f"Provider: {CONFIG.get('provider', 'openrouter')}")
+    _log(f"Model: {os.environ.get('LLM_MODEL') or CONFIG['model']}")
     _log(f"Reasoning effort: {CONFIG.get('reasoning_effort', 'default')}")
     _log(f"Instruction: {args.instruction[:200]}...")
     _log("-" * 60)
@@ -284,7 +343,10 @@ def main():
     # Initialize components
     start_time = time.time()
 
+    refuse_if_gateway_residue()
     llm = LLMClient(
+        provider=CONFIG.get("provider"),
+        model=os.environ.get("LLM_MODEL") or CONFIG.get("model"),
         temperature=CONFIG.get("temperature"),
         max_tokens=CONFIG.get("max_tokens", 16384),
     )
